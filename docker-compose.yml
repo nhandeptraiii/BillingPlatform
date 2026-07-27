@@ -16,7 +16,7 @@ services:
       - JWT_SECRET_KEY=${JWT_SECRET_KEY}
       - SPRING_DATASOURCE_USERNAME=${DB_USERNAME:-root}
       - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD}
-      - DB_URL=jdbc:mysql://171.254.92.12:3306/${DB_NAME}?useSSL=false&allowPublicKeyRetrieval=true&connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true
+      - SPRING_DATASOURCE_URL=jdbc:mysql://171.254.92.12:3306/${DB_NAME}?useSSL=false&allowPublicKeyRetrieval=true&connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true
     ports:
       - "8081:8080"
     restart: always
