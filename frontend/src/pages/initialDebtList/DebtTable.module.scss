@@ -1,0 +1,33 @@
+@use "../../styles/variables" as *;
+.tableWrapper {
+  background: white;
+  border-radius: 16px;
+  overflow: auto;
+  box-shadow: $shadow;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th {
+  background: #fff5f7;
+  color: $viettel-red;
+  padding: 16px;
+}
+
+td {
+  padding: 16px;
+  border-top: 1px solid $border-color;
+}
+
+.success {
+  color: $success;
+  font-weight: 600;
+}
+
+.danger {
+  color: $danger;
+  font-weight: 600;
+}

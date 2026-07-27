@@ -1,0 +1,238 @@
+package vn.viettel.khdn.billing_platform.repository;
+
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import vn.viettel.khdn.billing_platform.model.CustomerBillingRecord;
+import vn.viettel.khdn.billing_platform.model.enums.CollectionStatusEnum;
+import vn.viettel.khdn.billing_platform.model.enums.DebtStatusEnum;
+import vn.viettel.khdn.billing_platform.model.enums.SyncWarningEnum;
+
+public interface CustomerBillingRecordRepository extends JpaRepository<CustomerBillingRecord, Long> {
+
+    // Tìm theo mã KH + kỳ (dùng khi import đối chiếu)
+    Optional<CustomerBillingRecord> findByCustomerCodeAndBillingPeriodId(
+            String customerCode, Long billingPeriodId);
+
+    // Tìm theo số TB + kỳ (backup key khi import đối chiếu)
+    Optional<CustomerBillingRecord> findBySubscriberNumberAndBillingPeriodId(
+            String subscriberNumber, Long billingPeriodId);
+
+    // Chunked IN query: lấy records theo batch Mã KH — tránh N+1 mà không OOM
+    // Gọi theo từng batch 500 mã, không load toàn bộ vào RAM một lần
+    List<CustomerBillingRecord> findAllByCustomerCodeInAndBillingPeriodId(
+            Collection<String> customerCodes, Long billingPeriodId);
+
+    // Bulk load toàn bộ records của 1 kỳ (dùng khi import đối chiếu — tránh N+1 query)
+    // 1 câu SELECT thay vì N câu, sau đó group trong memory
+    List<CustomerBillingRecord> findAllByBillingPeriodId(Long billingPeriodId);
+
+    // Scheduler cuối ngày: tìm bản ghi DA_THANH_TOAN nhưng chưa gạch nợ
+    List<CustomerBillingRecord> findByBillingPeriodIdAndCollectionStatusAndDebtStatus(
+            Long periodId, CollectionStatusEnum collectionStatus, DebtStatusEnum debtStatus);
+
+    // Danh sách cảnh báo đồng bộ (TH import đối chiếu)
+    List<CustomerBillingRecord> findByBillingPeriodIdAndSyncWarning(
+            Long periodId, SyncWarningEnum syncWarning);
+
+    // Cảnh báo: DA_THANH_TOAN chưa gạch nợ + INCONSISTENT (dùng cho warnings API)
+    @Query("""
+        SELECT r FROM CustomerBillingRecord r
+        WHERE r.billingPeriod.id = :periodId
+          AND (cast(:regionId as Long) IS NULL OR r.region.id = :regionId)
+          AND (
+            (r.collectionStatus = 'DA_THANH_TOAN' AND r.debtStatus = 'CHUA_GACH_NO')
+            OR r.syncWarning = 'INCONSISTENT'
+            OR r.syncWarning = 'COLLECTED_NOT_MARKED'
+          )
+        """)
+    Page<CustomerBillingRecord> findWarningsByPeriod(
+            @Param("periodId") Long periodId,
+            @Param("regionId") Long regionId,
+            Pageable pageable);
+
+
+    // Tìm kiếm full-text + filter đa chiều (MANAGER xem tất cả)
+    @Query("""
+        SELECT r FROM CustomerBillingRecord r
+        LEFT JOIN r.assignedConsultant c
+        WHERE (:periodId IS NULL OR r.billingPeriod.id = :periodId)
+          AND (cast(:regionId as Long) IS NULL OR r.region.id = :regionId)
+          AND (:collectionStatus IS NULL OR r.collectionStatus = :collectionStatus)
+          AND (:debtStatus IS NULL OR r.debtStatus = :debtStatus)
+          AND (:assignedUserId IS NULL OR c.id = :assignedUserId)
+          AND (:startOfDay IS NULL OR r.billPrintedAt >= :startOfDay)
+          AND (:endOfDay IS NULL OR r.billPrintedAt < :endOfDay)
+          AND (:subscriberNumber IS NULL OR r.subscriberNumber LIKE CONCAT('%', :subscriberNumber, '%'))
+          AND (:customerName IS NULL OR LOWER(r.customerName) LIKE LOWER(CONCAT('%', :customerName, '%')))
+          AND (:fullAddress IS NULL OR LOWER(r.fullAddress) LIKE LOWER(CONCAT('%', :fullAddress, '%')))
+          AND (:search IS NULL OR
+               LOWER(r.customerName) LIKE LOWER(CONCAT('%', :search, '%')) OR
+               r.customerCode LIKE CONCAT('%', :search, '%') OR
+               r.subscriberNumber LIKE CONCAT('%', :search, '%') OR
+               r.phoneNumber LIKE CONCAT('%', :search, '%') OR
+               LOWER(r.fullAddress) LIKE LOWER(CONCAT('%', :search, '%')))
+        """)
+    Page<CustomerBillingRecord> searchAll(
+            @Param("periodId") Long periodId,
+            @Param("regionId") Long regionId,
+            @Param("collectionStatus") CollectionStatusEnum collectionStatus,
+            @Param("debtStatus") DebtStatusEnum debtStatus,
+            @Param("assignedUserId") Long assignedUserId,
+            @Param("startOfDay") java.time.Instant startOfDay,
+            @Param("endOfDay") java.time.Instant endOfDay,
+            @Param("subscriberNumber") String subscriberNumber,
+            @Param("customerName") String customerName,
+            @Param("fullAddress") String fullAddress,
+            @Param("search") String search,
+            Pageable pageable);
+
+    @Query("""
+        SELECT r.id FROM CustomerBillingRecord r
+        LEFT JOIN r.assignedConsultant c
+        WHERE (:periodId IS NULL OR r.billingPeriod.id = :periodId)
+          AND (cast(:regionId as Long) IS NULL OR r.region.id = :regionId)
+          AND (:collectionStatus IS NULL OR r.collectionStatus = :collectionStatus)
+          AND (:debtStatus IS NULL OR r.debtStatus = :debtStatus)
+          AND (:assignedUserId IS NULL OR c.id = :assignedUserId)
+          AND (:startOfDay IS NULL OR r.billPrintedAt >= :startOfDay)
+          AND (:endOfDay IS NULL OR r.billPrintedAt < :endOfDay)
+          AND (:subscriberNumber IS NULL OR r.subscriberNumber LIKE CONCAT('%', :subscriberNumber, '%'))
+          AND (:customerName IS NULL OR LOWER(r.customerName) LIKE LOWER(CONCAT('%', :customerName, '%')))
+          AND (:fullAddress IS NULL OR LOWER(r.fullAddress) LIKE LOWER(CONCAT('%', :fullAddress, '%')))
+          AND (:search IS NULL OR
+               LOWER(r.customerName) LIKE LOWER(CONCAT('%', :search, '%')) OR
+               r.customerCode LIKE CONCAT('%', :search, '%') OR
+               r.subscriberNumber LIKE CONCAT('%', :search, '%') OR
+               r.phoneNumber LIKE CONCAT('%', :search, '%') OR
+               LOWER(r.fullAddress) LIKE LOWER(CONCAT('%', :search, '%')))
+        """)
+    List<Long> findAllIdsAll(
+            @Param("periodId") Long periodId,
+            @Param("regionId") Long regionId,
+            @Param("collectionStatus") CollectionStatusEnum collectionStatus,
+            @Param("debtStatus") DebtStatusEnum debtStatus,
+            @Param("assignedUserId") Long assignedUserId,
+            @Param("startOfDay") java.time.Instant startOfDay,
+            @Param("endOfDay") java.time.Instant endOfDay,
+            @Param("subscriberNumber") String subscriberNumber,
+            @Param("customerName") String customerName,
+            @Param("fullAddress") String fullAddress,
+            @Param("search") String search);
+
+    // CONSULTANT chỉ thấy KH của mình
+    @Query("""
+        SELECT r FROM CustomerBillingRecord r
+        WHERE r.assignedConsultant.id = :consultantId
+          AND (:periodId IS NULL OR r.billingPeriod.id = :periodId)
+          AND (:collectionStatus IS NULL OR r.collectionStatus = :collectionStatus)
+          AND (:debtStatus IS NULL OR r.debtStatus = :debtStatus)
+          AND (:startOfDay IS NULL OR r.billPrintedAt >= :startOfDay)
+          AND (:endOfDay IS NULL OR r.billPrintedAt < :endOfDay)
+          AND (:subscriberNumber IS NULL OR r.subscriberNumber LIKE CONCAT('%', :subscriberNumber, '%'))
+          AND (:customerName IS NULL OR LOWER(r.customerName) LIKE LOWER(CONCAT('%', :customerName, '%')))
+          AND (:fullAddress IS NULL OR LOWER(r.fullAddress) LIKE LOWER(CONCAT('%', :fullAddress, '%')))
+          AND (:search IS NULL OR
+               LOWER(r.customerName) LIKE LOWER(CONCAT('%', :search, '%')) OR
+               r.customerCode LIKE CONCAT('%', :search, '%') OR
+               r.subscriberNumber LIKE CONCAT('%', :search, '%') OR
+               r.phoneNumber LIKE CONCAT('%', :search, '%') OR
+               LOWER(r.fullAddress) LIKE LOWER(CONCAT('%', :search, '%')))
+        """)
+    Page<CustomerBillingRecord> searchByConsultant(
+            @Param("consultantId") Long consultantId,
+            @Param("periodId") Long periodId,
+            @Param("collectionStatus") CollectionStatusEnum collectionStatus,
+            @Param("debtStatus") DebtStatusEnum debtStatus,
+            @Param("startOfDay") java.time.Instant startOfDay,
+            @Param("endOfDay") java.time.Instant endOfDay,
+            @Param("subscriberNumber") String subscriberNumber,
+            @Param("customerName") String customerName,
+            @Param("fullAddress") String fullAddress,
+            @Param("search") String search,
+            Pageable pageable);
+
+    @Query("""
+        SELECT r.id FROM CustomerBillingRecord r
+        WHERE r.assignedConsultant.id = :consultantId
+          AND (:periodId IS NULL OR r.billingPeriod.id = :periodId)
+          AND (:collectionStatus IS NULL OR r.collectionStatus = :collectionStatus)
+          AND (:debtStatus IS NULL OR r.debtStatus = :debtStatus)
+          AND (:startOfDay IS NULL OR r.billPrintedAt >= :startOfDay)
+          AND (:endOfDay IS NULL OR r.billPrintedAt < :endOfDay)
+          AND (:subscriberNumber IS NULL OR r.subscriberNumber LIKE CONCAT('%', :subscriberNumber, '%'))
+          AND (:customerName IS NULL OR LOWER(r.customerName) LIKE LOWER(CONCAT('%', :customerName, '%')))
+          AND (:fullAddress IS NULL OR LOWER(r.fullAddress) LIKE LOWER(CONCAT('%', :fullAddress, '%')))
+          AND (:search IS NULL OR
+               LOWER(r.customerName) LIKE LOWER(CONCAT('%', :search, '%')) OR
+               r.customerCode LIKE CONCAT('%', :search, '%') OR
+               r.subscriberNumber LIKE CONCAT('%', :search, '%') OR
+               r.phoneNumber LIKE CONCAT('%', :search, '%') OR
+               LOWER(r.fullAddress) LIKE LOWER(CONCAT('%', :search, '%')))
+        """)
+    List<Long> findAllIdsByConsultant(
+            @Param("consultantId") Long consultantId,
+            @Param("periodId") Long periodId,
+            @Param("collectionStatus") CollectionStatusEnum collectionStatus,
+            @Param("debtStatus") DebtStatusEnum debtStatus,
+            @Param("startOfDay") java.time.Instant startOfDay,
+            @Param("endOfDay") java.time.Instant endOfDay,
+            @Param("subscriberNumber") String subscriberNumber,
+            @Param("customerName") String customerName,
+            @Param("fullAddress") String fullAddress,
+            @Param("search") String search);
+
+    // Thống kê tiến độ theo kỳ
+    @Query("""
+        SELECT r.collectionStatus, r.debtStatus, COUNT(r), SUM(r.amountDue), SUM(r.collectedAmount)
+        FROM CustomerBillingRecord r
+        WHERE r.billingPeriod.id = :periodId
+          AND (cast(:regionId as Long) IS NULL OR r.region.id = :regionId)
+        GROUP BY r.collectionStatus, r.debtStatus
+        """)
+    List<Object[]> getProgressByPeriod(@Param("periodId") Long periodId, @Param("regionId") Long regionId);
+
+    // Thống kê tiến độ theo kỳ và tư vấn viên
+    @Query("""
+        SELECT r.collectionStatus, r.debtStatus, COUNT(r), SUM(r.amountDue), SUM(r.collectedAmount)
+        FROM CustomerBillingRecord r
+        WHERE r.billingPeriod.id = :periodId AND r.assignedConsultant.id = :consultantId
+        GROUP BY r.collectionStatus, r.debtStatus
+        """)
+    List<Object[]> getProgressByPeriodAndConsultant(@Param("periodId") Long periodId, @Param("consultantId") Long consultantId);
+
+    // Thống kê theo tư vấn viên trong kỳ (kèm chỉ tiêu) - Số hồ sơ tính theo In bill, Số tiền tính theo In bill HOẶC Gạch nợ
+    @Query("""
+        SELECT r.assignedConsultant.id, r.assignedConsultant.fullName,
+               COUNT(r), SUM(r.amountDue),
+               SUM(CASE WHEN r.collectionStatus = 'DA_THANH_TOAN' THEN 1 ELSE 0 END),
+               SUM(CASE WHEN r.collectionStatus = 'DA_THANH_TOAN' OR r.debtStatus = 'DA_GACH_NO'
+                        THEN (CASE WHEN r.collectedAmount IS NULL OR r.collectedAmount = 0 THEN r.amountDue ELSE r.collectedAmount END)
+                        ELSE 0 END)
+        FROM CustomerBillingRecord r
+        WHERE r.billingPeriod.id = :periodId
+          AND (cast(:regionId as Long) IS NULL OR r.region.id = :regionId)
+        GROUP BY r.assignedConsultant.id, r.assignedConsultant.fullName
+        """)
+    List<Object[]> getConsultantPerformanceWithTarget(@Param("periodId") Long periodId, @Param("regionId") Long regionId);
+
+    // Thống kê giờ in bill đầu tiên và số lượng thu trong ngày của các tư vấn viên
+    @Query("""
+        SELECT r.assignedConsultant.id, r.assignedConsultant.fullName,
+               MIN(r.billPrintedAt),
+               COUNT(r)
+        FROM CustomerBillingRecord r
+        WHERE r.collectedAt >= :startOfDay AND r.collectedAt < :endOfDay
+          AND r.collectionStatus = 'DA_THANH_TOAN'
+          AND (cast(:regionId as Long) IS NULL OR r.region.id = :regionId)
+        GROUP BY r.assignedConsultant.id, r.assignedConsultant.fullName
+        """)
+    List<Object[]> getConsultantDailyStats(@Param("startOfDay") java.time.Instant startOfDay, @Param("endOfDay") java.time.Instant endOfDay, @Param("regionId") Long regionId);
+}

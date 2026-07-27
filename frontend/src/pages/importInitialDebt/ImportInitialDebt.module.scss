@@ -1,0 +1,66 @@
+.container {
+  padding: 24px;
+  background: #f5f7fb;
+  min-height: 100vh;
+}
+
+.pageHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  margin-bottom: 24px;
+
+  h1 {
+    font-size: 30px;
+    font-weight: 700;
+    color: #d70018;
+    margin-bottom: 8px;
+  }
+
+  p {
+    color: #7b809a;
+  }
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+}
+
+.downloadBtn {
+  border: none;
+  background: white;
+  color: #ee0033;
+  border: 1px solid #ee0033;
+
+  padding: 14px 24px;
+  border-radius: 12px;
+
+  cursor: pointer;
+  font-weight: 600;
+
+  transition: 0.3s;
+
+  &:hover {
+    background: #fff1f4;
+  }
+}
+
+.importBtn {
+  border: none;
+  background: #ee0033;
+  color: white;
+
+  padding: 14px 24px;
+  border-radius: 12px;
+
+  cursor: pointer;
+  font-weight: 600;
+
+  transition: 0.3s;
+
+  &:hover {
+    background: #d6002d;
+  }
+}

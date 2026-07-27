@@ -1,0 +1,21 @@
+.page {
+  background: #f5f6fa;
+  min-height: 100vh;
+  padding: 24px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.header {
+  h1 {
+    font-size: 28px;
+    font-weight: 700;
+  }
+
+  p {
+    color: #6b7280;
+    margin-top: 6px;
+  }
+}

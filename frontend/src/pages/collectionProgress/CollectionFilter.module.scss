@@ -1,0 +1,100 @@
+.container {
+  background: #fff;
+  padding: 20px;
+  border-radius: 16px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.filterRow {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.searchRow {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+select,
+input {
+  height: 44px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 0 14px;
+  outline: none;
+  width: 100%;
+
+  &:focus {
+    border-color: #ee0033;
+  }
+}
+
+input {
+  flex: 1;
+}
+
+button {
+  height: 44px;
+  min-width: 120px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.searchBtn {
+  background: #ee0033;
+  color: white;
+
+  &:hover {
+    background: #d9002e;
+  }
+}
+
+.resetBtn {
+  background: #f3f4f6;
+
+  &:hover {
+    background: #e5e7eb;
+  }
+}
+
+@media (max-width: 1200px) {
+  .filterRow {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .filterRow {
+    grid-template-columns: 1fr;
+  }
+
+  .searchRow {
+    flex-direction: column;
+  }
+
+  button {
+    width: 100%;
+  }
+}
+
+
+.periodGroup {
+  display: flex;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.monthSelect {
+  width: 135px;
+  min-width: 135px;
+}
+.yearSelect {
+  width: 135px;
+  min-width: 135px;
+}

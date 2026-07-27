@@ -1,0 +1,33 @@
+package vn.viettel.khdn.billing_platform.model.dto;
+
+import java.math.BigDecimal;
+import java.time.Instant;
+
+/**
+ * DTO dữ liệu in bill — trả về đầy đủ thông tin cho Mobile App render bill.
+ */
+public record ResBillDataDTO(
+    // Thông tin cửa hàng
+    String storeName,
+    String storeAddress,
+    String hotline,
+
+    // Thông tin khách hàng
+    String customerCode,
+    String customerName,
+    String subscriberNumber,
+    String fullAddress,
+
+    // Kỳ thanh toán & dịch vụ
+    String billingPeriodName,
+    String serviceType,         // Loại dịch vụ: CƯỚC VIỄN THÔNG / KỲ HÒA ĐƠN...
+    String adsContent,          // Nội dung quảng cáo từ file import
+
+    // Thông tin thu tiền
+    BigDecimal amountDue,
+    BigDecimal collectedAmount,
+    Instant collectedAt,        // Ngày thu
+    String collectedByName,     // Người thu
+    Instant billPrintedAt       // Ngày giờ in bill
+) {}
+

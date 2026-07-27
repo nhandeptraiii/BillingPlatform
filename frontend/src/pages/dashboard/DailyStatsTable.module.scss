@@ -1,0 +1,44 @@
+.wrapper {
+  background: white;
+
+  border-radius: 16px;
+
+  padding: 12px;
+
+  margin-top: 12px;
+
+  margin-bottom: 12px;
+
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+
+  h3 {
+    color: #d70018;
+    margin-bottom: 20px;
+  }
+}
+
+table {
+  width: 100%;
+
+  border-collapse: collapse;
+}
+
+th {
+  background: #fff1f2;
+
+  padding: 14px;
+
+  text-align: left;
+
+  color: #d70018;
+}
+
+td {
+  padding: 14px;
+
+  border-bottom: 1px solid #f0f0f0;
+}
+
+tr:hover {
+  background: #fafafa;
+}

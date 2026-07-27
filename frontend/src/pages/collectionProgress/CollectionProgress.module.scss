@@ -1,0 +1,152 @@
+.wrapper {
+  padding: 24px;
+  background: #f5f7fb;
+  min-height: 100vh;
+}
+
+.header {
+  margin-bottom: 24px;
+
+  h1 {
+    margin: 0;
+    color: #d70018;
+    font-weight: 700;
+  }
+
+  p {
+    margin-top: 8px;
+    color: #666;
+  }
+}
+
+.tableSection {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 2px 10px rgba(0,0,0,.06);
+}
+
+.tableToolbar {
+
+  display: flex;
+
+  justify-content: flex-end;
+
+  margin-bottom: 16px;
+
+  position: relative;
+}
+
+.columnBtn {
+
+  height: 44px;
+
+  background: white;
+
+  border: 1px solid #ddd;
+
+  padding: 0 18px;
+
+  border-radius: 10px;
+
+  cursor: pointer;
+
+  font-weight: 600;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 8px;
+
+  transition: .2s;
+
+  &:hover {
+
+    border-color: #ee0033;
+
+    color: #ee0033;
+  }
+}
+
+.exportBtn {
+
+  height: 44px;
+
+  padding: 0 18px;
+
+  border: none;
+
+  border-radius: 10px;
+
+  cursor: pointer;
+
+  font-weight: 600;
+
+  color: white;
+
+  background: #16a34a;
+
+  transition: .2s;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 8px;
+}
+
+.exportBtn:hover {
+
+  background: #15803d;
+}
+
+.toolbar {
+
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: center;
+
+  margin-bottom: 16px;
+}
+
+.leftActions {
+
+  display: flex;
+
+  gap: 12px;
+}
+
+.bulkDebtBtn {
+
+  height: 44px;
+
+  padding: 0 18px;
+
+  border: none;
+
+  border-radius: 10px;
+
+  cursor: pointer;
+
+  font-weight: 600;
+
+  color: white;
+
+  background: #f59e0b;
+
+  transition: .2s;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 8px;
+
+  &:hover {
+
+    background: #d97706;
+  }
+}

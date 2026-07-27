@@ -1,0 +1,14 @@
+@use "../../styles/variables" as *;
+.toolbar {
+  display: flex;
+  gap: 12px;
+
+  button {
+    background: $viettel-red;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 10px;
+    cursor: pointer;
+  }
+}

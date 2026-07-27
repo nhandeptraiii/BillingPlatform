@@ -1,0 +1,29 @@
+@use "../../styles/variables" as *;
+.wrapper {
+  display: flex;
+  gap: 16px;
+  background: white;
+  padding: 20px;
+  border-radius: 16px;
+
+  input,
+  select {
+    flex: 1;
+    padding: 12px;
+    border: 1px solid $border-color;
+    border-radius: 10px;
+  }
+
+  button {
+    background: $viettel-red;
+    color: white;
+    border: none;
+    padding: 0 24px;
+    border-radius: 10px;
+    cursor: pointer;
+  }
+}
+
+.reset {
+  background: #64748b !important;
+}

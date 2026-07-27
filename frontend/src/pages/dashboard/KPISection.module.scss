@@ -1,0 +1,54 @@
+.grid {
+  display: grid;
+
+  grid-template-columns: repeat(5, 1fr);
+
+  gap: 20px;
+}
+
+.card {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.08);
+
+  border-top: 5px solid #d70018;
+
+  h4 {
+    color: #666;
+    margin-bottom: 10px;
+  }
+
+  span {
+    font-size: 30px;
+    font-weight: 700;
+    color: #d70018;
+  }
+}
+.cardDebt {
+  background: white;
+
+  border-radius: 16px;
+
+  padding: 24px;
+
+  box-shadow: 0 2px 12px rgba(0,0,0,.06);
+
+  border-top: 5px solid #d70018;
+
+  h4 {
+    color: #666;
+  }
+
+  span {
+    display: block;
+
+    margin-top: 10px;
+
+    font-size: 30px;
+
+    font-weight: 700;
+
+    color: #d70018;
+  }
+}
