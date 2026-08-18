@@ -7,6 +7,7 @@ import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -16,6 +17,20 @@ import vn.viettel.khdn.billing_platform.model.enums.DebtStatusEnum;
 import vn.viettel.khdn.billing_platform.model.enums.SyncWarningEnum;
 
 public interface CustomerBillingRecordRepository extends JpaRepository<CustomerBillingRecord, Long> {
+
+    // SET NULL assigned_consultant khi xóa user (tránh FK violation)
+    @Modifying
+    @Query("UPDATE CustomerBillingRecord r SET r.assignedConsultant = NULL WHERE r.assignedConsultant.id = :consultantId")
+    void clearAssignedConsultant(@Param("consultantId") Long consultantId);
+
+    // Kiểm tra đã có records trong kỳ + khu vực (để chặn re-import)
+    boolean existsByBillingPeriodIdAndRegionId(Long billingPeriodId, Long regionId);
+
+    // Xóa toàn bộ records của 1 kỳ (dùng khi xóa đầu kỳ — trước khi xóa BillingPeriod)
+    @Modifying
+    @Query("DELETE FROM CustomerBillingRecord r WHERE r.billingPeriod.id = :periodId")
+    void deleteAllByBillingPeriodId(@Param("periodId") Long periodId);
+
 
     // Tìm theo mã KH + kỳ (dùng khi import đối chiếu)
     Optional<CustomerBillingRecord> findByCustomerCodeAndBillingPeriodId(

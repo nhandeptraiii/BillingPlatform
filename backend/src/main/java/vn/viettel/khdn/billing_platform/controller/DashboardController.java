@@ -52,7 +52,7 @@ public class DashboardController {
     }
 
     @GetMapping("/overview")
-    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN', 'CONSULTANT')")
+    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN', 'CONSULTANT', 'NVKD')")
     public ResponseEntity<ResDashboardOverviewDTO> getOverview(
             @RequestParam(value = "month", required = false) Integer month,
             @RequestParam(value = "year", required = false) Integer year) {
@@ -64,7 +64,7 @@ public class DashboardController {
     }
 
     @GetMapping("/consultants")
-    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN', 'NVKD')")
     public ResponseEntity<List<ResConsultantPerformanceDTO>> getConsultantPerformance(
             @RequestParam(value = "month", required = false) Integer month,
             @RequestParam(value = "year", required = false) Integer year) {
@@ -76,7 +76,7 @@ public class DashboardController {
     }
 
     @GetMapping("/consultants/export")
-    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN', 'NVKD')")
     public ResponseEntity<byte[]> exportConsultantPerformance(
             @RequestParam(value = "month", required = false) Integer month,
             @RequestParam(value = "year", required = false) Integer year) {
@@ -94,7 +94,7 @@ public class DashboardController {
     }
 
     @GetMapping("/warnings")
-    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN', 'NVKD')")
     public ResponseEntity<Page<ResCustomerRecordDTO>> getWarnings(
             @RequestParam(value = "month", required = false) Integer month,
             @RequestParam(value = "year", required = false) Integer year,
@@ -110,7 +110,7 @@ public class DashboardController {
     }
 
     @GetMapping("/daily-stats")
-    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN', 'NVKD')")
     public ResponseEntity<List<vn.viettel.khdn.billing_platform.model.dto.dashboard.ResConsultantDailyStatsDTO>> getDailyStats(
             @RequestParam(value = "date", required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate date) {
         if (date == null) {

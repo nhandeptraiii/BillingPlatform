@@ -20,7 +20,7 @@ public class RegionController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN', 'CONSULTANT')")
+    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN', 'CONSULTANT', 'NVKD')")
     public ResponseEntity<List<Region>> getAllRegions() {
         return ResponseEntity.ok(regionRepository.findAll());
     }

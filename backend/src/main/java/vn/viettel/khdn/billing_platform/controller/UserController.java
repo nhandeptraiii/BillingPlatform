@@ -84,14 +84,14 @@ public class UserController {
         return ResponseEntity.ok(userService.getById(id));
     }
 
-    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN', 'NVKD')")
     @PostMapping
     public ResponseEntity<ResUserDTO> create(@Valid @RequestBody ReqUserCreateDTO req) {
         ResUserDTO currentUser = getCurrentUser();
         return ResponseEntity.status(HttpStatus.CREATED).body(userService.create(req, currentUser));
     }
 
-    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN', 'NVKD')")
     @PutMapping("/{id}")
     public ResponseEntity<ResUserDTO> update(@PathVariable("id") Long id,
                                        @Valid @RequestBody ReqUserUpdateDTO req) {
@@ -106,10 +106,11 @@ public class UserController {
         return ResponseEntity.ok(userService.setStatus(id, status));
     }
 
-    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN', 'NVKD')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable("id") Long id) {
-        userService.delete(id);
+        ResUserDTO currentUser = getCurrentUser();
+        userService.delete(id, currentUser);
         return ResponseEntity.noContent().build();
     }
 
@@ -123,14 +124,15 @@ public class UserController {
         return ResponseEntity.ok(Map.of("message", "Đổi mật khẩu thành công!"));
     }
 
-    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN', 'NVKD')")
     @PutMapping("/{id}/reset-password")
     public ResponseEntity<Map<String, String>> resetPassword(@PathVariable("id") Long id,
             @Valid @RequestBody ReqResetPasswordDTO req) {
-        userService.resetPassword(id, req.newPassword());
+        ResUserDTO currentUser = getCurrentUser();
+        userService.resetPassword(id, req.newPassword(), currentUser);
         return ResponseEntity.ok(Map.of("message", "Đặt lại mật khẩu thành công!"));
     }
-    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN', 'NVKD')")
     @PostMapping(value = "/import-consultants", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Map<String, Object>> importConsultants(@RequestParam("file") MultipartFile file) {
         ResUserDTO currentUser = getCurrentUser();

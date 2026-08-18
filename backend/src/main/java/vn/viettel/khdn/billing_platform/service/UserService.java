@@ -20,6 +20,7 @@ import vn.viettel.khdn.billing_platform.model.dto.ReqUserUpdateDTO;
 import vn.viettel.khdn.billing_platform.model.dto.ReqUserUpdateMeDTO;
 import vn.viettel.khdn.billing_platform.model.dto.ResUserDTO;
 import vn.viettel.khdn.billing_platform.model.enums.RoleEnum;
+import vn.viettel.khdn.billing_platform.repository.CustomerBillingRecordRepository;
 import vn.viettel.khdn.billing_platform.repository.UserRepository;
 import vn.viettel.khdn.billing_platform.repository.RegionRepository;
 import vn.viettel.khdn.billing_platform.model.Region;
@@ -31,11 +32,14 @@ public class UserService {
     private final UserRepository userRepository;
     private final RegionRepository regionRepository;
     private final PasswordEncoder passwordEncoder;
+    private final CustomerBillingRecordRepository recordRepository;
 
-    public UserService(UserRepository userRepository, RegionRepository regionRepository, PasswordEncoder passwordEncoder) {
+    public UserService(UserRepository userRepository, RegionRepository regionRepository,
+                       PasswordEncoder passwordEncoder, CustomerBillingRecordRepository recordRepository) {
         this.userRepository = userRepository;
         this.regionRepository = regionRepository;
         this.passwordEncoder = passwordEncoder;
+        this.recordRepository = recordRepository;
     }
 
     @Transactional(readOnly = true)
@@ -47,6 +51,7 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public Page<ResUserDTO> searchUsers(ResUserDTO currentUser, RoleEnum role, String keyword, Pageable pageable) {
+        // ADMIN: xem tất cả; MANAGER & NVKD: chỉ xem trong khu vực của mình
         Long regionId = currentUser.role() == RoleEnum.ADMIN ? null : currentUser.regionId();
         return userRepository.searchUsers(regionId, role, keyword, pageable)
             .map(this::convertToResUserDTO);
@@ -71,17 +76,25 @@ public class UserService {
             throw new EntityExistsException("Username đã tồn tại: " + req.username());
         }
 
+        // Kiểm tra quyền tạo role:
+        // MANAGER: tạo được NVKD và CONSULTANT
+        // NVKD: chỉ tạo được CONSULTANT
+        if (currentUser.role() == RoleEnum.NVKD) {
+            if (req.role() != RoleEnum.CONSULTANT) {
+                throw new IllegalArgumentException("NVKD chỉ được tạo tài khoản CONSULTANT");
+            }
+        }
+
         User user = new User();
         user.setUsername(req.username());
         user.setFullName(req.fullName());
-
         user.setPhone(req.phone());
         user.setPassword(passwordEncoder.encode(req.password()));
         user.setRole(req.role());
 
-        if (currentUser.role() == RoleEnum.MANAGER) {
+        if (currentUser.role() == RoleEnum.MANAGER || currentUser.role() == RoleEnum.NVKD) {
             Region region = regionRepository.findById(currentUser.regionId())
-                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy khu vực của Manager"));
+                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy khu vực của người tạo"));
             user.setRegion(region);
         } else {
             if (req.regionId() != null) {
@@ -101,6 +114,28 @@ public class UserService {
     public ResUserDTO update(Long id, ReqUserUpdateDTO req, ResUserDTO currentUser) {
         User user = userRepository.findById(id)
             .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy người dùng ID: " + id));
+
+        // MANAGER & NVKD: chỉ được sửa CONSULTANT thuộc cùng khu vực
+        if (currentUser.role() == RoleEnum.MANAGER || currentUser.role() == RoleEnum.NVKD) {
+            if (user.getRole() != RoleEnum.CONSULTANT) {
+                throw new IllegalArgumentException("Bạn chỉ được sửa thông tin tài khoản CONSULTANT");
+            }
+            if (user.getRegion() == null || !user.getRegion().getId().equals(currentUser.regionId())) {
+                throw new IllegalArgumentException("Tư vấn viên này không thuộc khu vực của bạn");
+            }
+        }
+
+        // Cập nhật username nếu có (kiểm tra trùng)
+        if (req.username() != null && !req.username().isBlank()) {
+            String newUsername = req.username().trim();
+            if (!newUsername.equals(user.getUsername())) {
+                if (userRepository.existsByUsername(newUsername)) {
+                    throw new EntityExistsException("Username '" + newUsername + "' đã tồn tại");
+                }
+                user.setUsername(newUsername);
+            }
+        }
+
         user.setFullName(req.fullName());
         user.setPhone(req.phone());
         if (req.role() != null) {
@@ -109,11 +144,9 @@ public class UserService {
 
         RoleEnum targetRole = user.getRole();
 
-        if (currentUser.role() == RoleEnum.MANAGER) {
-            Region region = regionRepository.findById(currentUser.regionId())
-                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy khu vực của Manager"));
-            user.setRegion(region);
-        } else {
+        if (currentUser.role() == RoleEnum.MANAGER || currentUser.role() == RoleEnum.NVKD) {
+            // Giữ nguyên region của người dùng (MANAGER/NVKD không đổi region cho CONSULTANT)
+        } else if (currentUser.role() == RoleEnum.ADMIN) {
             if (req.regionId() != null) {
                 Region region = regionRepository.findById(req.regionId())
                     .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy khu vực ID: " + req.regionId()));
@@ -152,9 +185,28 @@ public class UserService {
         return convertToResUserDTO(saved);
     }
 
-    public void delete(Long id) {
-        userRepository.findById(id)
+    public void delete(Long id, ResUserDTO currentUser) {
+        User target = userRepository.findById(id)
             .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy người dùng ID: " + id));
+
+        // MANAGER & NVKD: chỉ xóa được CONSULTANT cùng khu vực
+        if (currentUser.role() == RoleEnum.MANAGER || currentUser.role() == RoleEnum.NVKD) {
+            if (target.getRole() != RoleEnum.CONSULTANT) {
+                throw new IllegalArgumentException("Bạn chỉ được xóa tài khoản CONSULTANT");
+            }
+            if (target.getRegion() == null || !target.getRegion().getId().equals(currentUser.regionId())) {
+                throw new IllegalArgumentException("Tư vấn viên này không thuộc khu vực của bạn");
+            }
+        }
+
+        // ADMIN không được xóa ADMIN khác (tùy chọn bảo vệ)
+        if (currentUser.role() == RoleEnum.ADMIN && target.getRole() == RoleEnum.ADMIN) {
+            throw new IllegalArgumentException("Không thể xóa tài khoản Admin");
+        }
+
+        // SET NULL assigned_consultant trên tất cả bản ghi thu cước trước khi xóa user
+        recordRepository.clearAssignedConsultant(id);
+
         userRepository.deleteById(id);
     }
 
@@ -168,22 +220,35 @@ public class UserService {
         userRepository.save(user);
     }
 
-    public void resetPassword(Long userId, String newPassword) {
-        User user = userRepository.findById(userId)
+    public void resetPassword(Long userId, String newPassword, ResUserDTO currentUser) {
+        User target = userRepository.findById(userId)
             .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy người dùng ID: " + userId));
-        user.setPassword(passwordEncoder.encode(newPassword));
-        userRepository.save(user);
+
+        // MANAGER & NVKD: chỉ reset password cho CONSULTANT thuộc khu vực của mình
+        if (currentUser.role() == RoleEnum.MANAGER || currentUser.role() == RoleEnum.NVKD) {
+            if (target.getRole() != RoleEnum.CONSULTANT) {
+                throw new IllegalArgumentException("Bạn chỉ được đặt lại mật khẩu cho tài khoản CONSULTANT");
+            }
+            if (target.getRegion() == null || !target.getRegion().getId().equals(currentUser.regionId())) {
+                throw new IllegalArgumentException("Tư vấn viên này không thuộc khu vực của bạn");
+            }
+        }
+
+        target.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(target);
     }
 
     public int importConsultants(MultipartFile file, ResUserDTO currentUser) {
-        if (currentUser.role() != RoleEnum.MANAGER && currentUser.role() != RoleEnum.ADMIN) {
-            throw new IllegalArgumentException("Chỉ Quản lý hoặc Admin mới được import nhân viên");
+        if (currentUser.role() != RoleEnum.MANAGER
+                && currentUser.role() != RoleEnum.ADMIN
+                && currentUser.role() != RoleEnum.NVKD) {
+            throw new IllegalArgumentException("Chỉ Quản lý, NVKD hoặc Admin mới được import nhân viên");
         }
 
         Region region = null;
-        if (currentUser.role() == RoleEnum.MANAGER) {
+        if (currentUser.role() == RoleEnum.MANAGER || currentUser.role() == RoleEnum.NVKD) {
             region = regionRepository.findById(currentUser.regionId())
-                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy khu vực của Manager"));
+                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy khu vực của người dùng"));
         }
 
         int count = 0;

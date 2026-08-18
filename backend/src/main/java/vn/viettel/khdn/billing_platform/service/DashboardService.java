@@ -34,7 +34,9 @@ public class DashboardService {
 
     public ResDashboardOverviewDTO getDashboardOverview(Long periodId, User currentUser) {
         List<Object[]> stats;
-        if (currentUser.getRole() == RoleEnum.MANAGER || currentUser.getRole() == RoleEnum.ADMIN) {
+        if (currentUser.getRole() == RoleEnum.MANAGER
+                || currentUser.getRole() == RoleEnum.ADMIN
+                || currentUser.getRole() == RoleEnum.NVKD) {
             Long regionId = currentUser.getRole() == RoleEnum.ADMIN ? null : (currentUser.getRegion() != null ? currentUser.getRegion().getId() : null);
             stats = repository.getProgressByPeriod(periodId, regionId);
         } else {

@@ -259,6 +259,21 @@ public class ImportService {
                     }
 
                     String periodKey = month + "/" + year;
+
+                    // Kiểm tra chặn import trước khi tạo/lấy BillingPeriod
+                    if (!periodCache.containsKey(periodKey)) {
+                        java.util.Optional<BillingPeriod> existing = billingPeriodRepository.findByMonthAndYear(month, year);
+                        if (existing.isPresent() && createdBy.getRegion() != null) {
+                            boolean hasData = recordRepository.existsByBillingPeriodIdAndRegionId(
+                                    existing.get().getId(), createdBy.getRegion().getId());
+                            if (hasData) {
+                                throw new IllegalStateException(
+                                    "Kỳ " + month + "/" + year + " đã có dữ liệu đầu kỳ cho khu vực của bạn. "
+                                    + "Vui lòng xóa kỳ này trước khi import lại.");
+                            }
+                        }
+                    }
+
                     BillingPeriod period = periodCache.computeIfAbsent(periodKey, key ->
                         billingPeriodRepository.findByMonthAndYear(month, year)
                             .orElseGet(() -> {
@@ -328,6 +343,9 @@ public class ImportService {
                         batchRecords.clear();
                     }
 
+                } catch (IllegalStateException e) {
+                    // Lỗi nghiêm trọng (ví dụ: đã có dữ liệu đầu kỳ) → dừng toàn bộ import
+                    throw e;
                 } catch (Exception e) {
                     errors.add(new ImportResultDTO.ImportErrorRow(currentRowNum,
                         "Lỗi xử lý dòng: " + e.getMessage()));
@@ -341,7 +359,9 @@ public class ImportService {
             if (!consultantsToUpdate.isEmpty()) {
                 userRepository.saveAll(consultantsToUpdate);
             }
-            
+        } catch (IllegalStateException e) {
+            // Lỗi nghiệp vụ (ví dụ: đã có dữ liệu đầu kỳ) → ném lại nguyên vẹn
+            throw e;
         } catch (Exception e) {
             throw new IllegalArgumentException("Không thể đọc file Excel: " + e.getMessage());
         }
