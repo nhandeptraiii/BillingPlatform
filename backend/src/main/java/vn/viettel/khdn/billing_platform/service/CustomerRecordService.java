@@ -415,8 +415,12 @@ public class CustomerRecordService {
                 row.createCell(4).setCellValue(r.getAmountDue() != null ? r.getAmountDue().doubleValue() : 0);
                 
                 BigDecimal colAmt = r.getCollectedAmount();
-                if ((r.getCollectionStatus() == CollectionStatusEnum.DA_THANH_TOAN || r.getDebtStatus() == DebtStatusEnum.DA_GACH_NO) && (colAmt == null || colAmt.compareTo(BigDecimal.ZERO) == 0)) {
-                    colAmt = r.getAmountDue() != null ? r.getAmountDue() : BigDecimal.ZERO;
+                if (colAmt == null || colAmt.compareTo(BigDecimal.ZERO) == 0) {
+                    if (r.getDebtStatus() == DebtStatusEnum.DA_GACH_NO) {
+                        colAmt = r.getAmountDue() != null ? r.getAmountDue() : BigDecimal.ZERO;
+                    } else {
+                        colAmt = BigDecimal.ZERO;
+                    }
                 }
                 row.createCell(5).setCellValue(colAmt != null ? colAmt.doubleValue() : 0);
                 

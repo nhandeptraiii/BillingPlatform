@@ -64,13 +64,13 @@ public class DashboardService {
                 collectedRecords += count;
             }
 
-            // Số tiền đã thu (totalCollectedAmount): Tính theo Đã in bill HOẶC Đã gạch nợ (không double count)
-            if (CollectionStatusEnum.DA_THANH_TOAN == collectionStatus || DebtStatusEnum.DA_GACH_NO == debtStatus) {
-                if (colAmt != null && colAmt.compareTo(BigDecimal.ZERO) > 0) {
-                    collectedAmount = collectedAmount.add(colAmt);
-                } else {
-                    collectedAmount = collectedAmount.add(amtDue);
-                }
+            // Số tiền đã thu (totalCollectedAmount): Dựa trên collectedAmount (ghi nhận từ import gạch nợ)
+            // Nếu collectedAmount > 0 → cộng vào (bao gồm cả partial payment)
+            // Fallback: đã gạch nợ nhưng collectedAmount trống (dữ liệu cũ) → lấy amountDue
+            if (colAmt != null && colAmt.compareTo(BigDecimal.ZERO) > 0) {
+                collectedAmount = collectedAmount.add(colAmt);
+            } else if (DebtStatusEnum.DA_GACH_NO == debtStatus) {
+                collectedAmount = collectedAmount.add(amtDue);
             }
 
             if (DebtStatusEnum.DA_GACH_NO == debtStatus) {

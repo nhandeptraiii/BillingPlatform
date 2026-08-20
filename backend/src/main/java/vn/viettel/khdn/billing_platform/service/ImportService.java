@@ -83,6 +83,19 @@ public class ImportService {
             }
             return totalPaidAmount.compareTo(expectedAmount) >= 0;
         }
+
+        /**
+         * Tính số tiền ghi nhận đã thu: Min(totalPaidAmount, amountDue).
+         * - Nếu trả >= đầu kỳ → lấy đầu kỳ (không ghi nhận dư)
+         * - Nếu trả < đầu kỳ → lấy số thực trả (partial payment)
+         */
+        private BigDecimal computeCollectedAmount(BigDecimal amountDue) {
+            BigDecimal expectedAmount = amountDue != null ? amountDue : BigDecimal.ZERO;
+            if (totalPaidAmount.compareTo(expectedAmount) >= 0) {
+                return expectedAmount;
+            }
+            return totalPaidAmount;
+        }
     }
 
     // =========================================================================
@@ -536,42 +549,53 @@ public class ImportService {
                 for (CustomerBillingRecord record : allowedRecords) {
                     boolean updated = false;
                     boolean fileIsCleared = group.isClearedFor(record.getAmountDue());
+
+                    // Luôn tính collectedAmount = Min(tiền trả file, đầu kỳ)
+                    // Ghi đè theo file Viettel (nguồn sự thật duy nhất)
+                    BigDecimal newCollectedAmount = group.computeCollectedAmount(record.getAmountDue());
+
                     if (fileIsCleared) {
-                        if (record.getDebtStatus() != DebtStatusEnum.DA_GACH_NO || record.getCollectedAmount() == null || record.getCollectedAmount().compareTo(BigDecimal.ZERO) == 0) {
-                            if (record.getDebtStatus() != DebtStatusEnum.DA_GACH_NO) {
-                                autoUpdatedCount++;
+                        // === Trả đủ: chuyển trạng thái DA_GACH_NO ===
+                        if (record.getDebtStatus() != DebtStatusEnum.DA_GACH_NO) {
+                            autoUpdatedCount++;
+                        }
+                        if (!dryRun) {
+                            record.setDebtStatus(DebtStatusEnum.DA_GACH_NO);
+                            if (record.getDebtMarkedAt() == null) {
+                                record.setDebtMarkedAt(Instant.now());
                             }
-                            if (!dryRun) {
-                                record.setDebtStatus(DebtStatusEnum.DA_GACH_NO);
-                                if (record.getDebtMarkedAt() == null) {
-                                    record.setDebtMarkedAt(Instant.now());
-                                }
-                                if (record.getCollectedAmount() == null || record.getCollectedAmount().compareTo(BigDecimal.ZERO) == 0) {
-                                    record.setCollectedAmount(record.getAmountDue() != null ? record.getAmountDue() : BigDecimal.ZERO);
-                                }
-                                record.setSyncWarning(SyncWarningEnum.NONE);
-                                record.setSyncWarningNote(null);
-                                updated = true;
-                            }
+                            record.setCollectedAmount(newCollectedAmount);
+                            record.setSyncWarning(SyncWarningEnum.NONE);
+                            record.setSyncWarningNote(null);
+                            updated = true;
                         }
                     } else {
+                        // === Chưa trả đủ ===
                         if (record.getDebtStatus() == DebtStatusEnum.DA_GACH_NO) {
+                            // Trước đó đã gạch nợ nhưng file báo còn nợ → hạ trạng thái
                             autoUpdatedCount++;
                             warningCount++;
                             if (!dryRun) {
                                 record.setDebtStatus(DebtStatusEnum.CHUA_GACH_NO);
                                 record.setDebtMarkedBy(null);
                                 record.setDebtMarkedAt(null);
+                                record.setCollectedAmount(newCollectedAmount);
                                 record.setSyncWarning(SyncWarningEnum.INCONSISTENT);
                                 record.setSyncWarningNote("Báo cáo Viettel còn nợ hoặc tổng tiền trả chưa đủ tổng cước, đã hạ trạng thái gạch nợ.");
                                 updated = true;
                             }
-                        } else if (record.getCollectionStatus() == CollectionStatusEnum.DA_THANH_TOAN) {
-                            warningCount++;
+                        } else {
+                            // Chưa gạch nợ → cập nhật partial payment
                             if (!dryRun) {
-                                record.setSyncWarning(SyncWarningEnum.COLLECTED_NOT_MARKED);
-                                record.setSyncWarningNote("Đã thu tiền và in bill nhưng chưa gạch nợ trên hệ thống Viettel.");
+                                record.setCollectedAmount(newCollectedAmount);
                                 updated = true;
+                            }
+                            if (record.getCollectionStatus() == CollectionStatusEnum.DA_THANH_TOAN) {
+                                warningCount++;
+                                if (!dryRun) {
+                                    record.setSyncWarning(SyncWarningEnum.COLLECTED_NOT_MARKED);
+                                    record.setSyncWarningNote("Đã thu tiền và in bill nhưng chưa gạch nợ trên hệ thống Viettel.");
+                                }
                             }
                         }
                     }
