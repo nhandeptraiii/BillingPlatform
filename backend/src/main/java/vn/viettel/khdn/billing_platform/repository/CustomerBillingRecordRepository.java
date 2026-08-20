@@ -223,11 +223,11 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
         """)
     List<Object[]> getProgressByPeriodAndConsultant(@Param("periodId") Long periodId, @Param("consultantId") Long consultantId);
 
-    // Thống kê theo tư vấn viên trong kỳ (kèm chỉ tiêu) - Số hồ sơ tính theo In bill, Số tiền dựa trên collectedAmount (import gạch nợ)
+    // Thống kê theo tư vấn viên trong kỳ (kèm chỉ tiêu) - Số hồ sơ và số tiền đều căn cứ vào gạch nợ
     @Query("""
         SELECT r.assignedConsultant.id, r.assignedConsultant.fullName,
                COUNT(r), SUM(r.amountDue),
-               SUM(CASE WHEN r.collectionStatus = 'DA_THANH_TOAN' THEN 1 ELSE 0 END),
+               SUM(CASE WHEN r.debtStatus = 'DA_GACH_NO' THEN 1 ELSE 0 END),
                SUM(CASE WHEN r.collectedAmount IS NOT NULL AND r.collectedAmount > 0
                         THEN r.collectedAmount
                         WHEN r.debtStatus = 'DA_GACH_NO'

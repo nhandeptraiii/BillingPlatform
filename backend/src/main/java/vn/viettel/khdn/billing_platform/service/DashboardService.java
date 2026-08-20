@@ -59,8 +59,8 @@ public class DashboardService {
             totalRecords += count;
             expectedAmount = expectedAmount.add(amtDue);
 
-            // Số lượng hồ sơ đã thu (totalCollectedRecords): CHỈ tính theo đã thu tiền / in bill
-            if (CollectionStatusEnum.DA_THANH_TOAN == collectionStatus) {
+            // Số lượng hồ sơ đã thu (totalCollectedRecords): Căn cứ vào gạch nợ
+            if (DebtStatusEnum.DA_GACH_NO == debtStatus) {
                 collectedRecords += count;
             }
 
