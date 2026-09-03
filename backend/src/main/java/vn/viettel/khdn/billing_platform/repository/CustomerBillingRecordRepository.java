@@ -289,8 +289,7 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
     @Query("""
         SELECT r.collectionStatus, r.debtStatus, COUNT(r), SUM(r.amountDue),
                SUM(CASE 
-                   WHEN r.collectedAmount IS NOT NULL AND r.collectedAmount > 0 
-                       THEN (CASE WHEN r.collectedAmount > r.amountDue THEN r.amountDue ELSE r.collectedAmount END)
+                   WHEN r.collectedAmount IS NOT NULL THEN r.collectedAmount 
                    ELSE 0 
                END)
         FROM CustomerBillingRecord r
@@ -304,8 +303,7 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
     @Query("""
         SELECT r.collectionStatus, r.debtStatus, COUNT(r), SUM(r.amountDue),
                SUM(CASE 
-                   WHEN r.collectedAmount IS NOT NULL AND r.collectedAmount > 0 
-                       THEN (CASE WHEN r.collectedAmount > r.amountDue THEN r.amountDue ELSE r.collectedAmount END)
+                   WHEN r.collectedAmount IS NOT NULL THEN r.collectedAmount 
                    ELSE 0 
                END)
         FROM CustomerBillingRecord r
@@ -320,8 +318,7 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
                COUNT(r), SUM(r.amountDue),
                SUM(CASE WHEN r.debtStatus = 'DA_GACH_NO' THEN 1 ELSE 0 END),
                SUM(CASE 
-                   WHEN r.collectedAmount IS NOT NULL AND r.collectedAmount > 0 
-                       THEN (CASE WHEN r.collectedAmount > r.amountDue THEN r.amountDue ELSE r.collectedAmount END)
+                   WHEN r.collectedAmount IS NOT NULL THEN r.collectedAmount 
                    ELSE 0 
                END)
         FROM CustomerBillingRecord r
@@ -348,8 +345,7 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
     @Query("""
         SELECT r.collectionStatus, r.debtStatus, COUNT(r), SUM(r.amountDue),
                SUM(CASE 
-                   WHEN r.collectedAmount IS NOT NULL AND r.collectedAmount > 0 
-                       THEN (CASE WHEN r.collectedAmount > r.amountDue THEN r.amountDue ELSE r.collectedAmount END)
+                   WHEN r.collectedAmount IS NOT NULL THEN r.collectedAmount 
                    ELSE 0 
                END)
         FROM CustomerBillingRecord r
@@ -364,8 +360,7 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
                COUNT(r), SUM(r.amountDue),
                SUM(CASE WHEN r.debtStatus = 'DA_GACH_NO' THEN 1 ELSE 0 END),
                SUM(CASE 
-                   WHEN r.collectedAmount IS NOT NULL AND r.collectedAmount > 0 
-                       THEN (CASE WHEN r.collectedAmount > r.amountDue THEN r.amountDue ELSE r.collectedAmount END)
+                   WHEN r.collectedAmount IS NOT NULL THEN r.collectedAmount 
                    ELSE 0 
                END)
         FROM CustomerBillingRecord r
@@ -387,4 +382,5 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
         """)
     List<Object[]> getConsultantDailyStatsByManager(@Param("startOfDay") java.time.Instant startOfDay, @Param("endOfDay") java.time.Instant endOfDay, @Param("managerId") Long managerId);
 }
+
 

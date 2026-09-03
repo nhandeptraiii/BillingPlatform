@@ -76,7 +76,7 @@ public class DashboardService {
             }
 
             // Số tiền đã thu (totalCollectedAmount): Được tính chính xác từ câu query theo quy tắc:
-            // Luôn lấy Min(tiền thu được, tiền đầu kỳ), bất kể trạng thái gạch nợ (bao gồm cả đóng thiếu/đóng đủ).
+            // Luôn lấy TOÀN BỘ số tiền thực thu, không giới hạn (không cắt bỏ phần đóng dư). Khớp 100% với file Excel.
             collectedAmount = collectedAmount.add(colAmt);
         }
 

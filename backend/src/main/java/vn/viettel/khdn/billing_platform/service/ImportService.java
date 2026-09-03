@@ -100,16 +100,11 @@ public class ImportService {
         }
 
         /**
-         * Tính số tiền ghi nhận đã thu: Min(totalPaidAmount, amountDue).
-         * - Nếu trả >= đầu kỳ → lấy đầu kỳ (không ghi nhận dư)
-         * - Nếu trả < đầu kỳ → lấy số thực trả (partial payment)
+         * Tính số tiền ghi nhận đã thu: Ghi nhận toàn bộ số tiền thực trả.
+         * Khớp 100% với số liệu trong file Excel.
          */
         private BigDecimal computeCollectedAmount(BigDecimal amountDue) {
-            BigDecimal expectedAmount = amountDue != null ? amountDue : BigDecimal.ZERO;
-            if (totalPaidAmount.compareTo(expectedAmount) >= 0) {
-                return expectedAmount;
-            }
-            return totalPaidAmount;
+            return totalPaidAmount != null ? totalPaidAmount : BigDecimal.ZERO;
         }
     }
 
