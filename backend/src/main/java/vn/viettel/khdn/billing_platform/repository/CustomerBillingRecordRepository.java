@@ -287,7 +287,14 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
 
     // Thống kê tiến độ theo kỳ
     @Query("""
-        SELECT r.collectionStatus, r.debtStatus, COUNT(r), SUM(r.amountDue), SUM(r.collectedAmount)
+        SELECT r.collectionStatus, r.debtStatus, COUNT(r), SUM(r.amountDue),
+               SUM(CASE 
+                   WHEN r.collectedAmount IS NOT NULL AND r.collectedAmount > 0 
+                       THEN CASE WHEN r.collectedAmount > r.amountDue THEN r.amountDue ELSE r.collectedAmount END
+                   WHEN r.debtStatus = 'DA_GACH_NO' 
+                       THEN r.amountDue 
+                   ELSE 0 
+               END)
         FROM CustomerBillingRecord r
         WHERE r.billingPeriod.id = :periodId
           AND (cast(:regionId as Long) IS NULL OR r.region.id = :regionId)
@@ -297,7 +304,14 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
 
     // Thống kê tiến độ theo kỳ và tư vấn viên
     @Query("""
-        SELECT r.collectionStatus, r.debtStatus, COUNT(r), SUM(r.amountDue), SUM(r.collectedAmount)
+        SELECT r.collectionStatus, r.debtStatus, COUNT(r), SUM(r.amountDue),
+               SUM(CASE 
+                   WHEN r.collectedAmount IS NOT NULL AND r.collectedAmount > 0 
+                       THEN CASE WHEN r.collectedAmount > r.amountDue THEN r.amountDue ELSE r.collectedAmount END
+                   WHEN r.debtStatus = 'DA_GACH_NO' 
+                       THEN r.amountDue 
+                   ELSE 0 
+               END)
         FROM CustomerBillingRecord r
         WHERE r.billingPeriod.id = :periodId AND r.assignedConsultant.id = :consultantId
         GROUP BY r.collectionStatus, r.debtStatus
@@ -309,11 +323,13 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
         SELECT r.assignedConsultant.id, r.assignedConsultant.fullName,
                COUNT(r), SUM(r.amountDue),
                SUM(CASE WHEN r.debtStatus = 'DA_GACH_NO' THEN 1 ELSE 0 END),
-               SUM(CASE WHEN r.collectedAmount IS NOT NULL AND r.collectedAmount > 0
-                        THEN r.collectedAmount
-                        WHEN r.debtStatus = 'DA_GACH_NO'
-                        THEN r.amountDue
-                        ELSE 0 END)
+               SUM(CASE 
+                   WHEN r.collectedAmount IS NOT NULL AND r.collectedAmount > 0 
+                       THEN CASE WHEN r.collectedAmount > r.amountDue THEN r.amountDue ELSE r.collectedAmount END
+                   WHEN r.debtStatus = 'DA_GACH_NO' 
+                       THEN r.amountDue 
+                   ELSE 0 
+               END)
         FROM CustomerBillingRecord r
         WHERE r.billingPeriod.id = :periodId
           AND (cast(:regionId as Long) IS NULL OR r.region.id = :regionId)
@@ -328,15 +344,22 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
                COUNT(r)
         FROM CustomerBillingRecord r
         WHERE r.collectedAt >= :startOfDay AND r.collectedAt < :endOfDay
-          AND r.collectionStatus = 'DA_THANH_TOAN'
-          AND (cast(:regionId as Long) IS NULL OR r.region.id = :regionId)
+        AND r.collectionStatus = 'DA_THANH_TOAN'
+        AND (cast(:regionId as Long) IS NULL OR r.region.id = :regionId)
         GROUP BY r.assignedConsultant.id, r.assignedConsultant.fullName
         """)
     List<Object[]> getConsultantDailyStats(@Param("startOfDay") java.time.Instant startOfDay, @Param("endOfDay") java.time.Instant endOfDay, @Param("regionId") Long regionId);
 
     // Dành cho NVKD quản lý
     @Query("""
-        SELECT r.collectionStatus, r.debtStatus, COUNT(r), SUM(r.amountDue), SUM(r.collectedAmount)
+        SELECT r.collectionStatus, r.debtStatus, COUNT(r), SUM(r.amountDue),
+               SUM(CASE 
+                   WHEN r.collectedAmount IS NOT NULL AND r.collectedAmount > 0 
+                       THEN CASE WHEN r.collectedAmount > r.amountDue THEN r.amountDue ELSE r.collectedAmount END
+                   WHEN r.debtStatus = 'DA_GACH_NO' 
+                       THEN r.amountDue 
+                   ELSE 0 
+               END)
         FROM CustomerBillingRecord r
         WHERE r.billingPeriod.id = :periodId 
           AND (r.assignedConsultant.manager.id = :managerId OR r.assignedConsultant.id = :managerId)
@@ -348,11 +371,13 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
         SELECT r.assignedConsultant.id, r.assignedConsultant.fullName,
                COUNT(r), SUM(r.amountDue),
                SUM(CASE WHEN r.debtStatus = 'DA_GACH_NO' THEN 1 ELSE 0 END),
-               SUM(CASE WHEN r.collectedAmount IS NOT NULL AND r.collectedAmount > 0
-                        THEN r.collectedAmount
-                        WHEN r.debtStatus = 'DA_GACH_NO'
-                        THEN r.amountDue
-                        ELSE 0 END)
+               SUM(CASE 
+                   WHEN r.collectedAmount IS NOT NULL AND r.collectedAmount > 0 
+                       THEN CASE WHEN r.collectedAmount > r.amountDue THEN r.amountDue ELSE r.collectedAmount END
+                   WHEN r.debtStatus = 'DA_GACH_NO' 
+                       THEN r.amountDue 
+                   ELSE 0 
+               END)
         FROM CustomerBillingRecord r
         WHERE r.billingPeriod.id = :periodId
           AND (r.assignedConsultant.manager.id = :managerId OR r.assignedConsultant.id = :managerId)

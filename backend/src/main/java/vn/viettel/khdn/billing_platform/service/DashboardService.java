@@ -23,7 +23,6 @@ import java.io.ByteArrayOutputStream;
 
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.ss.usermodel.CellStyle;
@@ -37,7 +36,6 @@ import vn.viettel.khdn.billing_platform.model.RegionTarget;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-@SuppressWarnings("null")
 public class DashboardService {
 
     private final CustomerBillingRecordRepository repository;
@@ -47,14 +45,15 @@ public class DashboardService {
         List<Object[]> stats;
         if (currentUser.getRole() == RoleEnum.MANAGER
                 || currentUser.getRole() == RoleEnum.ADMIN) {
-            Long regionId = currentUser.getRole() == RoleEnum.ADMIN ? null : (currentUser.getRegion() != null ? currentUser.getRegion().getId() : null);
+            Long regionId = currentUser.getRole() == RoleEnum.ADMIN ? null
+                    : (currentUser.getRegion() != null ? currentUser.getRegion().getId() : null);
             stats = repository.getProgressByPeriod(periodId, regionId);
         } else if (currentUser.getRole() == RoleEnum.NVKD) {
             stats = repository.getProgressByPeriodAndManager(periodId, currentUser.getId());
         } else {
             stats = repository.getProgressByPeriodAndConsultant(periodId, currentUser.getId());
         }
-        
+
         long totalRecords = 0L;
         long collectedRecords = 0L;
         long markedDebtRecords = 0L;
@@ -76,25 +75,20 @@ public class DashboardService {
                 markedDebtRecords += count;
             }
 
-            // Số tiền đã thu (totalCollectedAmount): Dựa trên collectedAmount (ghi nhận từ import gạch nợ)
-            // Nếu collectedAmount > 0 → cộng vào (bao gồm cả partial payment)
-            // Fallback: đã gạch nợ nhưng collectedAmount trống (dữ liệu cũ) → lấy amountDue
-            if (colAmt.compareTo(BigDecimal.ZERO) > 0) {
-                collectedAmount = collectedAmount.add(colAmt);
-            } else if (DebtStatusEnum.DA_GACH_NO == debtStatus) {
-                collectedAmount = collectedAmount.add(amtDue);
-            }
+            // Số tiền đã thu (totalCollectedAmount): Đã được tính chính xác từ câu query theo quy tắc:
+            // Min(tiền đóng, tiền đầu kỳ) hoặc tiền đầu kỳ nếu đã gạch nợ
+            collectedAmount = collectedAmount.add(colAmt);
         }
 
         double amountProgressPercentage = 0.0;
         double recordsProgressPercentage = 0.0;
-        
+
         if (expectedAmount.compareTo(BigDecimal.ZERO) > 0) {
             amountProgressPercentage = collectedAmount.divide(expectedAmount, 4, RoundingMode.HALF_UP)
-                                                .multiply(BigDecimal.valueOf(100))
-                                                .doubleValue();
-        } 
-        
+                    .multiply(BigDecimal.valueOf(100))
+                    .doubleValue();
+        }
+
         if (totalRecords > 0) {
             recordsProgressPercentage = (double) collectedRecords / totalRecords * 100;
         }
@@ -102,9 +96,11 @@ public class DashboardService {
         Double targetCustomerPercent = null;
         Double targetRevenuePercent = null;
 
-        Long regionIdForTarget = currentUser.getRole() == RoleEnum.ADMIN ? null : (currentUser.getRegion() != null ? currentUser.getRegion().getId() : null);
+        Long regionIdForTarget = currentUser.getRole() == RoleEnum.ADMIN ? null
+                : (currentUser.getRegion() != null ? currentUser.getRegion().getId() : null);
         if (regionIdForTarget != null) {
-            Optional<RegionTarget> optTarget = regionTargetRepository.findByRegionIdAndBillingPeriodId(regionIdForTarget, periodId);
+            Optional<RegionTarget> optTarget = regionTargetRepository
+                    .findByRegionIdAndBillingPeriodId(regionIdForTarget, periodId);
             if (optTarget.isPresent()) {
                 targetCustomerPercent = optTarget.get().getTargetCustomerPercent();
                 targetRevenuePercent = optTarget.get().getTargetRevenuePercent();
@@ -120,23 +116,23 @@ public class DashboardService {
                 amountProgressPercentage,
                 recordsProgressPercentage,
                 targetCustomerPercent,
-                targetRevenuePercent
-        );
+                targetRevenuePercent);
     }
 
     public List<ResConsultantPerformanceDTO> getConsultantPerformance(Long periodId, User currentUser) {
         List<Object[]> data;
         if (currentUser.getRole() == RoleEnum.MANAGER || currentUser.getRole() == RoleEnum.ADMIN) {
-            Long regionId = currentUser.getRole() == RoleEnum.ADMIN ? null : (currentUser.getRegion() != null ? currentUser.getRegion().getId() : null);
+            Long regionId = currentUser.getRole() == RoleEnum.ADMIN ? null
+                    : (currentUser.getRegion() != null ? currentUser.getRegion().getId() : null);
             data = repository.getConsultantPerformanceWithTarget(periodId, regionId);
         } else if (currentUser.getRole() == RoleEnum.NVKD) {
             data = repository.getConsultantPerformanceWithTargetByManager(periodId, currentUser.getId());
         } else {
             return new ArrayList<>(); // CONSULTANT does not use this, but to be safe
         }
-        
+
         List<ResConsultantPerformanceDTO> result = new ArrayList<>();
-        
+
         for (Object[] row : data) {
             Long consultantId = row[0] != null ? ((Number) row[0]).longValue() : null;
             String consultantName = (String) row[1];
@@ -151,8 +147,7 @@ public class DashboardService {
                     targetRecords,
                     targetAmount,
                     collectedRecords,
-                    collectedAmount
-            ));
+                    collectedAmount));
         }
         return result;
     }
@@ -164,7 +159,8 @@ public class DashboardService {
 
         List<Object[]> data;
         if (currentUser.getRole() == RoleEnum.MANAGER || currentUser.getRole() == RoleEnum.ADMIN) {
-            Long regionId = currentUser.getRole() == RoleEnum.ADMIN ? null : (currentUser.getRegion() != null ? currentUser.getRegion().getId() : null);
+            Long regionId = currentUser.getRole() == RoleEnum.ADMIN ? null
+                    : (currentUser.getRegion() != null ? currentUser.getRegion().getId() : null);
             data = repository.getConsultantDailyStats(startOfDay, endOfDay, regionId);
         } else if (currentUser.getRole() == RoleEnum.NVKD) {
             data = repository.getConsultantDailyStatsByManager(startOfDay, endOfDay, currentUser.getId());
@@ -183,8 +179,7 @@ public class DashboardService {
                     consultantId,
                     consultantName,
                     firstBillPrintedAt,
-                    collectedCount
-            ));
+                    collectedCount));
         }
         return result;
     }
@@ -223,7 +218,7 @@ public class DashboardService {
             // Row 1: Sub-headers
             Row row1 = sheet.createRow(1);
             String[] headers = {
-                    "STT", "Tên nhân viên", 
+                    "STT", "Tên nhân viên",
                     "Đã thu lũy kế", "Tổng cước phải thu", "Tồn đầu kỳ", "% Hoàn thành",
                     "Đã thu lũy kế", "Tổng KH phải thu", "Tồn đầu kỳ", "% Hoàn thành"
             };
@@ -238,16 +233,17 @@ public class DashboardService {
             int stt = 1;
             for (ResConsultantPerformanceDTO r : records) {
                 Row row = sheet.createRow(rowIdx++);
-                
+
                 row.createCell(0).setCellValue(stt++);
                 row.createCell(1).setCellValue(r.getConsultantName() != null ? r.getConsultantName() : "");
-                
+
                 // Doanh thu
                 BigDecimal collectedAmount = r.getCollectedAmount() != null ? r.getCollectedAmount() : BigDecimal.ZERO;
                 BigDecimal targetAmount = r.getTargetAmount() != null ? r.getTargetAmount() : BigDecimal.ZERO;
                 BigDecimal remainAmount = targetAmount.subtract(collectedAmount);
-                if (remainAmount.compareTo(BigDecimal.ZERO) < 0) remainAmount = BigDecimal.ZERO;
-                
+                if (remainAmount.compareTo(BigDecimal.ZERO) < 0)
+                    remainAmount = BigDecimal.ZERO;
+
                 double amountPercent = 0.0;
                 if (targetAmount.compareTo(BigDecimal.ZERO) > 0) {
                     amountPercent = collectedAmount.divide(targetAmount, 4, RoundingMode.HALF_UP)
@@ -263,7 +259,8 @@ public class DashboardService {
                 long collectedRecords = r.getCollectedRecords() != null ? r.getCollectedRecords() : 0L;
                 long targetRecords = r.getTargetRecords() != null ? r.getTargetRecords() : 0L;
                 long remainRecords = targetRecords - collectedRecords;
-                if (remainRecords < 0) remainRecords = 0L;
+                if (remainRecords < 0)
+                    remainRecords = 0L;
 
                 double recordsPercent = 0.0;
                 if (targetRecords > 0) {

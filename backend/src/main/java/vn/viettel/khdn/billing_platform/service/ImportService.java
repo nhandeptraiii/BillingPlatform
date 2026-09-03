@@ -90,7 +90,7 @@ public class ImportService {
 
         private boolean isClearedFor(BigDecimal amountDue) {
             BigDecimal expectedAmount = amountDue != null ? amountDue : BigDecimal.ZERO;
-            if (!hasRemainingDebtValue || hasRemainingDebt) {
+            if (hasRemainingDebt) {
                 return false;
             }
             if (expectedAmount.compareTo(BigDecimal.ZERO) <= 0) {

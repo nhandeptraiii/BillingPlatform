@@ -392,7 +392,7 @@ public class CustomerRecordService {
             r.getAssignedConsultant() != null ? r.getAssignedConsultant().getFullName() : null,
             r.getCollectionStatus(),
             r.getDebtStatus(),
-            (r.getCollectionStatus() == CollectionStatusEnum.DA_THANH_TOAN || r.getDebtStatus() == DebtStatusEnum.DA_GACH_NO) && (r.getCollectedAmount() == null || r.getCollectedAmount().compareTo(BigDecimal.ZERO) == 0) ? (r.getAmountDue() != null ? r.getAmountDue() : BigDecimal.ZERO) : r.getCollectedAmount(),
+            getEffectiveCollectedAmount(r),
             r.getCollectedBy() != null ? r.getCollectedBy().getFullName() : null,
             r.getCollectedAt(), r.getBillPrintedAt(),
             r.getDebtMarkedBy() != null ? r.getDebtMarkedBy().getFullName() : null,
@@ -400,6 +400,19 @@ public class CustomerRecordService {
             r.getSyncWarning(), r.getSyncWarningNote(),
             r.getCreatedAt(), r.getUpdatedAt()
         );
+    }
+
+    private BigDecimal getEffectiveCollectedAmount(CustomerBillingRecord r) {
+        BigDecimal colAmt = r.getCollectedAmount();
+        if (colAmt != null && colAmt.compareTo(BigDecimal.ZERO) > 0) {
+            if (r.getAmountDue() != null && colAmt.compareTo(r.getAmountDue()) > 0) {
+                return r.getAmountDue();
+            }
+            return colAmt;
+        } else if (r.getDebtStatus() == DebtStatusEnum.DA_GACH_NO) {
+            return r.getAmountDue() != null ? r.getAmountDue() : BigDecimal.ZERO;
+        }
+        return colAmt;
     }
 
     public byte[] exportExcel(User currentUser, Long periodId, CollectionStatusEnum collectionStatus,
@@ -432,14 +445,7 @@ public class CustomerRecordService {
                 row.createCell(3).setCellValue(r.getSubscriberNumber() != null ? r.getSubscriberNumber() : "");
                 row.createCell(4).setCellValue(r.getAmountDue() != null ? r.getAmountDue().doubleValue() : 0);
                 
-                BigDecimal colAmt = r.getCollectedAmount();
-                if (colAmt == null || colAmt.compareTo(BigDecimal.ZERO) == 0) {
-                    if (r.getDebtStatus() == DebtStatusEnum.DA_GACH_NO) {
-                        colAmt = r.getAmountDue() != null ? r.getAmountDue() : BigDecimal.ZERO;
-                    } else {
-                        colAmt = BigDecimal.ZERO;
-                    }
-                }
+                BigDecimal colAmt = getEffectiveCollectedAmount(r);
                 row.createCell(5).setCellValue(colAmt != null ? colAmt.doubleValue() : 0);
                 
                 String printedDate = r.getBillPrintedAt() != null ? formatter.format(r.getBillPrintedAt()) : "";
