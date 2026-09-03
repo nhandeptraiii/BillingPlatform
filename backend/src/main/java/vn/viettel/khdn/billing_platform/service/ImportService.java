@@ -59,7 +59,7 @@ public class ImportService {
 
     private String normalizeSubscriberNumber(String raw) {
         if (raw == null || raw.isBlank()) return "";
-        return raw.trim();
+        return raw.trim().toLowerCase();
     }
 
     private record ReconciliationKey(String customerCode, String subscriberNumber) {}
@@ -649,10 +649,10 @@ public class ImportService {
     private String normalizeContractCode(String raw) {
         if (raw == null || raw.isBlank()) return "";
         try {
-            // Thử parse dạng số (hỗ trợ scientific notation) bằng BigDecimal để bảo toàn độ chính xác
-            BigDecimal bd = new BigDecimal(raw.trim());
-            return bd.toBigInteger().toString();
-        } catch (Exception e) {
+            // Thử parse số khoa học (scientific notation) → long
+            double d = Double.parseDouble(raw);
+            return String.valueOf((long) d);
+        } catch (NumberFormatException e) {
             // Không phải số → trả về nguyên
             return raw.trim();
         }
