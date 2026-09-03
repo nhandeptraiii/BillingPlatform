@@ -1,4 +1,4 @@
-package vn.viettel.khdn.billing_platform.repository;
+﻿package vn.viettel.khdn.billing_platform.repository;
 
 import java.util.Collection;
 import java.util.List;
@@ -18,46 +18,46 @@ import vn.viettel.khdn.billing_platform.model.enums.SyncWarningEnum;
 
 public interface CustomerBillingRecordRepository extends JpaRepository<CustomerBillingRecord, Long> {
 
-    // SET NULL assigned_consultant khi xóa user (tránh FK violation)
+    // SET NULL assigned_consultant khi xĂ³a user (trĂ¡nh FK violation)
     @Modifying
     @Query("UPDATE CustomerBillingRecord r SET r.assignedConsultant = NULL WHERE r.assignedConsultant.id = :consultantId")
     void clearAssignedConsultant(@Param("consultantId") Long consultantId);
 
-    // Kiểm tra đã có records trong kỳ + khu vực (để chặn re-import)
+    // Kiá»ƒm tra Ä‘Ă£ cĂ³ records trong ká»³ + khu vá»±c (Ä‘á»ƒ cháº·n re-import)
     boolean existsByBillingPeriodIdAndRegionId(Long billingPeriodId, Long regionId);
 
-    // Xóa toàn bộ records của 1 kỳ (dùng khi xóa đầu kỳ — trước khi xóa BillingPeriod)
+    // XĂ³a toĂ n bá»™ records cá»§a 1 ká»³ (dĂ¹ng khi xĂ³a Ä‘áº§u ká»³ â€” trÆ°á»›c khi xĂ³a BillingPeriod)
     @Modifying
     @Query("DELETE FROM CustomerBillingRecord r WHERE r.billingPeriod.id = :periodId")
     void deleteAllByBillingPeriodId(@Param("periodId") Long periodId);
 
 
-    // Tìm theo mã KH + kỳ (dùng khi import đối chiếu)
+    // TĂ¬m theo mĂ£ KH + ká»³ (dĂ¹ng khi import Ä‘á»‘i chiáº¿u)
     Optional<CustomerBillingRecord> findByCustomerCodeAndBillingPeriodId(
             String customerCode, Long billingPeriodId);
 
-    // Tìm theo số TB + kỳ (backup key khi import đối chiếu)
+    // TĂ¬m theo sá»‘ TB + ká»³ (backup key khi import Ä‘á»‘i chiáº¿u)
     Optional<CustomerBillingRecord> findBySubscriberNumberAndBillingPeriodId(
             String subscriberNumber, Long billingPeriodId);
 
-    // Chunked IN query: lấy records theo batch Mã KH — tránh N+1 mà không OOM
-    // Gọi theo từng batch 500 mã, không load toàn bộ vào RAM một lần
+    // Chunked IN query: láº¥y records theo batch MĂ£ KH â€” trĂ¡nh N+1 mĂ  khĂ´ng OOM
+    // Gá»i theo tá»«ng batch 500 mĂ£, khĂ´ng load toĂ n bá»™ vĂ o RAM má»™t láº§n
     List<CustomerBillingRecord> findAllByCustomerCodeInAndBillingPeriodId(
             Collection<String> customerCodes, Long billingPeriodId);
 
-    // Bulk load toàn bộ records của 1 kỳ (dùng khi import đối chiếu — tránh N+1 query)
-    // 1 câu SELECT thay vì N câu, sau đó group trong memory
+    // Bulk load toĂ n bá»™ records cá»§a 1 ká»³ (dĂ¹ng khi import Ä‘á»‘i chiáº¿u â€” trĂ¡nh N+1 query)
+    // 1 cĂ¢u SELECT thay vĂ¬ N cĂ¢u, sau Ä‘Ă³ group trong memory
     List<CustomerBillingRecord> findAllByBillingPeriodId(Long billingPeriodId);
 
-    // Scheduler cuối ngày: tìm bản ghi DA_THANH_TOAN nhưng chưa gạch nợ
+    // Scheduler cuá»‘i ngĂ y: tĂ¬m báº£n ghi DA_THANH_TOAN nhÆ°ng chÆ°a gáº¡ch ná»£
     List<CustomerBillingRecord> findByBillingPeriodIdAndCollectionStatusAndDebtStatus(
             Long periodId, CollectionStatusEnum collectionStatus, DebtStatusEnum debtStatus);
 
-    // Danh sách cảnh báo đồng bộ (TH import đối chiếu)
+    // Danh sĂ¡ch cáº£nh bĂ¡o Ä‘á»“ng bá»™ (TH import Ä‘á»‘i chiáº¿u)
     List<CustomerBillingRecord> findByBillingPeriodIdAndSyncWarning(
             Long periodId, SyncWarningEnum syncWarning);
 
-    // Cảnh báo: DA_THANH_TOAN chưa gạch nợ + INCONSISTENT (dùng cho warnings API)
+    // Cáº£nh bĂ¡o: DA_THANH_TOAN chÆ°a gáº¡ch ná»£ + INCONSISTENT (dĂ¹ng cho warnings API)
     @Query("""
         SELECT r FROM CustomerBillingRecord r
         WHERE r.billingPeriod.id = :periodId
@@ -73,7 +73,7 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
             @Param("regionId") Long regionId,
             Pageable pageable);
 
-    // Cảnh báo dành cho NVKD (lọc theo nhóm quản lý)
+    // Cáº£nh bĂ¡o dĂ nh cho NVKD (lá»c theo nhĂ³m quáº£n lĂ½)
     @Query("""
         SELECT r FROM CustomerBillingRecord r
         WHERE r.billingPeriod.id = :periodId
@@ -90,7 +90,7 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
             Pageable pageable);
 
 
-    // Tìm kiếm full-text + filter đa chiều (MANAGER xem tất cả)
+    // TĂ¬m kiáº¿m full-text + filter Ä‘a chiá»u (MANAGER xem táº¥t cáº£)
     @Query("""
         SELECT r FROM CustomerBillingRecord r
         LEFT JOIN r.assignedConsultant c
@@ -158,7 +158,7 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
             @Param("fullAddress") String fullAddress,
             @Param("search") String search);
 
-    // CONSULTANT chỉ thấy KH của mình
+    // CONSULTANT chá»‰ tháº¥y KH cá»§a mĂ¬nh
     @Query("""
         SELECT r FROM CustomerBillingRecord r
         WHERE r.assignedConsultant.id = :consultantId
@@ -285,14 +285,12 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
             @Param("fullAddress") String fullAddress,
             @Param("search") String search);
 
-    // Thống kê tiến độ theo kỳ
+    // Thá»‘ng kĂª tiáº¿n Ä‘á»™ theo ká»³
     @Query("""
         SELECT r.collectionStatus, r.debtStatus, COUNT(r), SUM(r.amountDue),
                SUM(CASE 
                    WHEN r.collectedAmount IS NOT NULL AND r.collectedAmount > 0 
-                       THEN CASE WHEN r.collectedAmount > r.amountDue THEN r.amountDue ELSE r.collectedAmount END
-                   WHEN r.debtStatus = 'DA_GACH_NO' 
-                       THEN r.amountDue 
+                       THEN (CASE WHEN r.collectedAmount > r.amountDue THEN r.amountDue ELSE r.collectedAmount END)
                    ELSE 0 
                END)
         FROM CustomerBillingRecord r
@@ -302,14 +300,12 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
         """)
     List<Object[]> getProgressByPeriod(@Param("periodId") Long periodId, @Param("regionId") Long regionId);
 
-    // Thống kê tiến độ theo kỳ và tư vấn viên
+    // Thá»‘ng kĂª tiáº¿n Ä‘á»™ theo ká»³ vĂ  tÆ° váº¥n viĂªn
     @Query("""
         SELECT r.collectionStatus, r.debtStatus, COUNT(r), SUM(r.amountDue),
                SUM(CASE 
                    WHEN r.collectedAmount IS NOT NULL AND r.collectedAmount > 0 
-                       THEN CASE WHEN r.collectedAmount > r.amountDue THEN r.amountDue ELSE r.collectedAmount END
-                   WHEN r.debtStatus = 'DA_GACH_NO' 
-                       THEN r.amountDue 
+                       THEN (CASE WHEN r.collectedAmount > r.amountDue THEN r.amountDue ELSE r.collectedAmount END)
                    ELSE 0 
                END)
         FROM CustomerBillingRecord r
@@ -318,16 +314,14 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
         """)
     List<Object[]> getProgressByPeriodAndConsultant(@Param("periodId") Long periodId, @Param("consultantId") Long consultantId);
 
-    // Thống kê theo tư vấn viên trong kỳ (kèm chỉ tiêu) - Số hồ sơ và số tiền đều căn cứ vào gạch nợ
+    // Thá»‘ng kĂª theo tÆ° váº¥n viĂªn trong ká»³ (kĂ¨m chá»‰ tiĂªu) - Sá»‘ há»“ sÆ¡ vĂ  sá»‘ tiá»n Ä‘á»u cÄƒn cá»© vĂ o gáº¡ch ná»£
     @Query("""
         SELECT r.assignedConsultant.id, r.assignedConsultant.fullName,
                COUNT(r), SUM(r.amountDue),
                SUM(CASE WHEN r.debtStatus = 'DA_GACH_NO' THEN 1 ELSE 0 END),
                SUM(CASE 
                    WHEN r.collectedAmount IS NOT NULL AND r.collectedAmount > 0 
-                       THEN CASE WHEN r.collectedAmount > r.amountDue THEN r.amountDue ELSE r.collectedAmount END
-                   WHEN r.debtStatus = 'DA_GACH_NO' 
-                       THEN r.amountDue 
+                       THEN (CASE WHEN r.collectedAmount > r.amountDue THEN r.amountDue ELSE r.collectedAmount END)
                    ELSE 0 
                END)
         FROM CustomerBillingRecord r
@@ -337,7 +331,7 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
         """)
     List<Object[]> getConsultantPerformanceWithTarget(@Param("periodId") Long periodId, @Param("regionId") Long regionId);
 
-    // Thống kê giờ in bill đầu tiên và số lượng thu trong ngày của các tư vấn viên
+    // Thá»‘ng kĂª giá» in bill Ä‘áº§u tiĂªn vĂ  sá»‘ lÆ°á»£ng thu trong ngĂ y cá»§a cĂ¡c tÆ° váº¥n viĂªn
     @Query("""
         SELECT r.assignedConsultant.id, r.assignedConsultant.fullName,
                MIN(r.billPrintedAt),
@@ -350,14 +344,12 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
         """)
     List<Object[]> getConsultantDailyStats(@Param("startOfDay") java.time.Instant startOfDay, @Param("endOfDay") java.time.Instant endOfDay, @Param("regionId") Long regionId);
 
-    // Dành cho NVKD quản lý
+    // DĂ nh cho NVKD quáº£n lĂ½
     @Query("""
         SELECT r.collectionStatus, r.debtStatus, COUNT(r), SUM(r.amountDue),
                SUM(CASE 
                    WHEN r.collectedAmount IS NOT NULL AND r.collectedAmount > 0 
-                       THEN CASE WHEN r.collectedAmount > r.amountDue THEN r.amountDue ELSE r.collectedAmount END
-                   WHEN r.debtStatus = 'DA_GACH_NO' 
-                       THEN r.amountDue 
+                       THEN (CASE WHEN r.collectedAmount > r.amountDue THEN r.amountDue ELSE r.collectedAmount END)
                    ELSE 0 
                END)
         FROM CustomerBillingRecord r
@@ -373,9 +365,7 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
                SUM(CASE WHEN r.debtStatus = 'DA_GACH_NO' THEN 1 ELSE 0 END),
                SUM(CASE 
                    WHEN r.collectedAmount IS NOT NULL AND r.collectedAmount > 0 
-                       THEN CASE WHEN r.collectedAmount > r.amountDue THEN r.amountDue ELSE r.collectedAmount END
-                   WHEN r.debtStatus = 'DA_GACH_NO' 
-                       THEN r.amountDue 
+                       THEN (CASE WHEN r.collectedAmount > r.amountDue THEN r.amountDue ELSE r.collectedAmount END)
                    ELSE 0 
                END)
         FROM CustomerBillingRecord r
@@ -397,3 +387,4 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
         """)
     List<Object[]> getConsultantDailyStatsByManager(@Param("startOfDay") java.time.Instant startOfDay, @Param("endOfDay") java.time.Instant endOfDay, @Param("managerId") Long managerId);
 }
+

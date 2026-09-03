@@ -75,8 +75,8 @@ public class DashboardService {
                 markedDebtRecords += count;
             }
 
-            // Số tiền đã thu (totalCollectedAmount): Đã được tính chính xác từ câu query theo quy tắc:
-            // Min(tiền đóng, tiền đầu kỳ) hoặc tiền đầu kỳ nếu đã gạch nợ
+            // Số tiền đã thu (totalCollectedAmount): Được tính chính xác từ câu query theo quy tắc:
+            // Luôn lấy Min(tiền thu được, tiền đầu kỳ), bất kể trạng thái gạch nợ (bao gồm cả đóng thiếu/đóng đủ).
             collectedAmount = collectedAmount.add(colAmt);
         }
 
