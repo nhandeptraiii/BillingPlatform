@@ -39,10 +39,11 @@ public class DashboardService {
     public ResDashboardOverviewDTO getDashboardOverview(Long periodId, User currentUser) {
         List<Object[]> stats;
         if (currentUser.getRole() == RoleEnum.MANAGER
-                || currentUser.getRole() == RoleEnum.ADMIN
-                || currentUser.getRole() == RoleEnum.NVKD) {
+                || currentUser.getRole() == RoleEnum.ADMIN) {
             Long regionId = currentUser.getRole() == RoleEnum.ADMIN ? null : (currentUser.getRegion() != null ? currentUser.getRegion().getId() : null);
             stats = repository.getProgressByPeriod(periodId, regionId);
+        } else if (currentUser.getRole() == RoleEnum.NVKD) {
+            stats = repository.getProgressByPeriodAndManager(periodId, currentUser.getId());
         } else {
             stats = repository.getProgressByPeriodAndConsultant(periodId, currentUser.getId());
         }
@@ -121,8 +122,16 @@ public class DashboardService {
     }
 
     public List<ResConsultantPerformanceDTO> getConsultantPerformance(Long periodId, User currentUser) {
-        Long regionId = currentUser.getRole() == RoleEnum.ADMIN ? null : (currentUser.getRegion() != null ? currentUser.getRegion().getId() : null);
-        List<Object[]> data = repository.getConsultantPerformanceWithTarget(periodId, regionId);
+        List<Object[]> data;
+        if (currentUser.getRole() == RoleEnum.MANAGER || currentUser.getRole() == RoleEnum.ADMIN) {
+            Long regionId = currentUser.getRole() == RoleEnum.ADMIN ? null : (currentUser.getRegion() != null ? currentUser.getRegion().getId() : null);
+            data = repository.getConsultantPerformanceWithTarget(periodId, regionId);
+        } else if (currentUser.getRole() == RoleEnum.NVKD) {
+            data = repository.getConsultantPerformanceWithTargetByManager(periodId, currentUser.getId());
+        } else {
+            return new ArrayList<>(); // CONSULTANT does not use this, but to be safe
+        }
+        
         List<ResConsultantPerformanceDTO> result = new ArrayList<>();
         
         for (Object[] row : data) {
@@ -150,8 +159,15 @@ public class DashboardService {
         java.time.Instant startOfDay = date.atStartOfDay(zoneId).toInstant();
         java.time.Instant endOfDay = date.plusDays(1).atStartOfDay(zoneId).toInstant();
 
-        Long regionId = currentUser.getRole() == RoleEnum.ADMIN ? null : (currentUser.getRegion() != null ? currentUser.getRegion().getId() : null);
-        List<Object[]> data = repository.getConsultantDailyStats(startOfDay, endOfDay, regionId);
+        List<Object[]> data;
+        if (currentUser.getRole() == RoleEnum.MANAGER || currentUser.getRole() == RoleEnum.ADMIN) {
+            Long regionId = currentUser.getRole() == RoleEnum.ADMIN ? null : (currentUser.getRegion() != null ? currentUser.getRegion().getId() : null);
+            data = repository.getConsultantDailyStats(startOfDay, endOfDay, regionId);
+        } else if (currentUser.getRole() == RoleEnum.NVKD) {
+            data = repository.getConsultantDailyStatsByManager(startOfDay, endOfDay, currentUser.getId());
+        } else {
+            return new ArrayList<>();
+        }
         List<vn.viettel.khdn.billing_platform.model.dto.dashboard.ResConsultantDailyStatsDTO> result = new ArrayList<>();
 
         for (Object[] row : data) {

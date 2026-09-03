@@ -95,6 +95,10 @@ public class CustomerRecordService {
             return recordRepository.searchAll(
                 periodId, regionId, collectionStatus, debtStatus, assignedUserId,
                 startOfDay, endOfDay, subscriberNumber, customerName, fullAddress, search, pageable);
+        } else if (currentUser.getRole() == RoleEnum.NVKD) {
+            return recordRepository.searchByManager(
+                currentUser.getId(), periodId, collectionStatus, debtStatus, assignedUserId,
+                startOfDay, endOfDay, subscriberNumber, customerName, fullAddress, search, pageable);
         } else {
             return recordRepository.searchByConsultant(
                 currentUser.getId(), periodId, collectionStatus, debtStatus,
@@ -248,6 +252,8 @@ public class CustomerRecordService {
         Long regionId = currentUser.getRole() == RoleEnum.ADMIN ? null : (currentUser.getRegion() != null ? currentUser.getRegion().getId() : null);
         if (currentUser.getRole() == RoleEnum.MANAGER || currentUser.getRole() == RoleEnum.ADMIN) {
             ids = recordRepository.findAllIdsAll(periodId, regionId, collectionStatus, debtStatus, assignedUserId, startOfDay, endOfDay, subscriberNumber, customerName, fullAddress, search);
+        } else if (currentUser.getRole() == RoleEnum.NVKD) {
+            ids = recordRepository.findAllIdsByManager(currentUser.getId(), periodId, collectionStatus, debtStatus, assignedUserId, startOfDay, endOfDay, subscriberNumber, customerName, fullAddress, search);
         } else {
             ids = recordRepository.findAllIdsByConsultant(currentUser.getId(), periodId, collectionStatus, debtStatus, startOfDay, endOfDay, subscriberNumber, customerName, fullAddress, search);
         }
@@ -290,6 +296,8 @@ public class CustomerRecordService {
         Long regionId = currentUser.getRole() == RoleEnum.ADMIN ? null : (currentUser.getRegion() != null ? currentUser.getRegion().getId() : null);
         if (currentUser.getRole() == RoleEnum.MANAGER || currentUser.getRole() == RoleEnum.ADMIN) {
             ids = recordRepository.findAllIdsAll(periodId, regionId, collectionStatus, debtStatus, assignedUserId, startOfDay, endOfDay, subscriberNumber, customerName, fullAddress, search);
+        } else if (currentUser.getRole() == RoleEnum.NVKD) {
+            ids = recordRepository.findAllIdsByManager(currentUser.getId(), periodId, collectionStatus, debtStatus, assignedUserId, startOfDay, endOfDay, subscriberNumber, customerName, fullAddress, search);
         } else {
             ids = recordRepository.findAllIdsByConsultant(currentUser.getId(), periodId, collectionStatus, debtStatus, startOfDay, endOfDay, subscriberNumber, customerName, fullAddress, search);
         }

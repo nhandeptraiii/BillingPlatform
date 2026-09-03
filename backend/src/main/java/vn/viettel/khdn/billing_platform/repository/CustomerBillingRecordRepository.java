@@ -204,6 +204,71 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
             @Param("fullAddress") String fullAddress,
             @Param("search") String search);
 
+    @Query("""
+        SELECT r FROM CustomerBillingRecord r
+        WHERE (r.assignedConsultant.manager.id = :managerId OR r.assignedConsultant.id = :managerId)
+          AND (:periodId IS NULL OR r.billingPeriod.id = :periodId)
+          AND (:collectionStatus IS NULL OR r.collectionStatus = :collectionStatus)
+          AND (:debtStatus IS NULL OR r.debtStatus = :debtStatus)
+          AND (:assignedUserId IS NULL OR r.assignedConsultant.id = :assignedUserId)
+          AND (:startOfDay IS NULL OR r.billPrintedAt >= :startOfDay)
+          AND (:endOfDay IS NULL OR r.billPrintedAt < :endOfDay)
+          AND (:subscriberNumber IS NULL OR r.subscriberNumber LIKE CONCAT('%', :subscriberNumber, '%'))
+          AND (:customerName IS NULL OR LOWER(r.customerName) LIKE LOWER(CONCAT('%', :customerName, '%')))
+          AND (:fullAddress IS NULL OR LOWER(r.fullAddress) LIKE LOWER(CONCAT('%', :fullAddress, '%')))
+          AND (:search IS NULL OR
+               LOWER(r.customerName) LIKE LOWER(CONCAT('%', :search, '%')) OR
+               r.customerCode LIKE CONCAT('%', :search, '%') OR
+               r.subscriberNumber LIKE CONCAT('%', :search, '%') OR
+               r.phoneNumber LIKE CONCAT('%', :search, '%') OR
+               LOWER(r.fullAddress) LIKE LOWER(CONCAT('%', :search, '%')))
+        """)
+    Page<CustomerBillingRecord> searchByManager(
+            @Param("managerId") Long managerId,
+            @Param("periodId") Long periodId,
+            @Param("collectionStatus") CollectionStatusEnum collectionStatus,
+            @Param("debtStatus") DebtStatusEnum debtStatus,
+            @Param("assignedUserId") Long assignedUserId,
+            @Param("startOfDay") java.time.Instant startOfDay,
+            @Param("endOfDay") java.time.Instant endOfDay,
+            @Param("subscriberNumber") String subscriberNumber,
+            @Param("customerName") String customerName,
+            @Param("fullAddress") String fullAddress,
+            @Param("search") String search,
+            Pageable pageable);
+
+    @Query("""
+        SELECT r.id FROM CustomerBillingRecord r
+        WHERE (r.assignedConsultant.manager.id = :managerId OR r.assignedConsultant.id = :managerId)
+          AND (:periodId IS NULL OR r.billingPeriod.id = :periodId)
+          AND (:collectionStatus IS NULL OR r.collectionStatus = :collectionStatus)
+          AND (:debtStatus IS NULL OR r.debtStatus = :debtStatus)
+          AND (:assignedUserId IS NULL OR r.assignedConsultant.id = :assignedUserId)
+          AND (:startOfDay IS NULL OR r.billPrintedAt >= :startOfDay)
+          AND (:endOfDay IS NULL OR r.billPrintedAt < :endOfDay)
+          AND (:subscriberNumber IS NULL OR r.subscriberNumber LIKE CONCAT('%', :subscriberNumber, '%'))
+          AND (:customerName IS NULL OR LOWER(r.customerName) LIKE LOWER(CONCAT('%', :customerName, '%')))
+          AND (:fullAddress IS NULL OR LOWER(r.fullAddress) LIKE LOWER(CONCAT('%', :fullAddress, '%')))
+          AND (:search IS NULL OR
+               LOWER(r.customerName) LIKE LOWER(CONCAT('%', :search, '%')) OR
+               r.customerCode LIKE CONCAT('%', :search, '%') OR
+               r.subscriberNumber LIKE CONCAT('%', :search, '%') OR
+               r.phoneNumber LIKE CONCAT('%', :search, '%') OR
+               LOWER(r.fullAddress) LIKE LOWER(CONCAT('%', :search, '%')))
+        """)
+    List<Long> findAllIdsByManager(
+            @Param("managerId") Long managerId,
+            @Param("periodId") Long periodId,
+            @Param("collectionStatus") CollectionStatusEnum collectionStatus,
+            @Param("debtStatus") DebtStatusEnum debtStatus,
+            @Param("assignedUserId") Long assignedUserId,
+            @Param("startOfDay") java.time.Instant startOfDay,
+            @Param("endOfDay") java.time.Instant endOfDay,
+            @Param("subscriberNumber") String subscriberNumber,
+            @Param("customerName") String customerName,
+            @Param("fullAddress") String fullAddress,
+            @Param("search") String search);
+
     // Thống kê tiến độ theo kỳ
     @Query("""
         SELECT r.collectionStatus, r.debtStatus, COUNT(r), SUM(r.amountDue), SUM(r.collectedAmount)
@@ -252,4 +317,42 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
         GROUP BY r.assignedConsultant.id, r.assignedConsultant.fullName
         """)
     List<Object[]> getConsultantDailyStats(@Param("startOfDay") java.time.Instant startOfDay, @Param("endOfDay") java.time.Instant endOfDay, @Param("regionId") Long regionId);
+
+    // Dành cho NVKD quản lý
+    @Query("""
+        SELECT r.collectionStatus, r.debtStatus, COUNT(r), SUM(r.amountDue), SUM(r.collectedAmount)
+        FROM CustomerBillingRecord r
+        WHERE r.billingPeriod.id = :periodId 
+          AND (r.assignedConsultant.manager.id = :managerId OR r.assignedConsultant.id = :managerId)
+        GROUP BY r.collectionStatus, r.debtStatus
+        """)
+    List<Object[]> getProgressByPeriodAndManager(@Param("periodId") Long periodId, @Param("managerId") Long managerId);
+
+    @Query("""
+        SELECT r.assignedConsultant.id, r.assignedConsultant.fullName,
+               COUNT(r), SUM(r.amountDue),
+               SUM(CASE WHEN r.debtStatus = 'DA_GACH_NO' THEN 1 ELSE 0 END),
+               SUM(CASE WHEN r.collectedAmount IS NOT NULL AND r.collectedAmount > 0
+                        THEN r.collectedAmount
+                        WHEN r.debtStatus = 'DA_GACH_NO'
+                        THEN r.amountDue
+                        ELSE 0 END)
+        FROM CustomerBillingRecord r
+        WHERE r.billingPeriod.id = :periodId
+          AND (r.assignedConsultant.manager.id = :managerId OR r.assignedConsultant.id = :managerId)
+        GROUP BY r.assignedConsultant.id, r.assignedConsultant.fullName
+        """)
+    List<Object[]> getConsultantPerformanceWithTargetByManager(@Param("periodId") Long periodId, @Param("managerId") Long managerId);
+
+    @Query("""
+        SELECT r.assignedConsultant.id, r.assignedConsultant.fullName,
+               MIN(r.billPrintedAt),
+               COUNT(r)
+        FROM CustomerBillingRecord r
+        WHERE r.collectedAt >= :startOfDay AND r.collectedAt < :endOfDay
+          AND r.collectionStatus = 'DA_THANH_TOAN'
+          AND (r.assignedConsultant.manager.id = :managerId OR r.assignedConsultant.id = :managerId)
+        GROUP BY r.assignedConsultant.id, r.assignedConsultant.fullName
+        """)
+    List<Object[]> getConsultantDailyStatsByManager(@Param("startOfDay") java.time.Instant startOfDay, @Param("endOfDay") java.time.Instant endOfDay, @Param("managerId") Long managerId);
 }
