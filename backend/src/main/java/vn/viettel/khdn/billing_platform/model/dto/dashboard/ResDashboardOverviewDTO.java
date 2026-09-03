@@ -16,4 +16,6 @@ public class ResDashboardOverviewDTO {
     private BigDecimal totalCollectedAmount;
     private Double amountProgressPercentage;
     private Double recordsProgressPercentage;
+    private Double targetCustomerPercent;
+    private Double targetRevenuePercent;
 }

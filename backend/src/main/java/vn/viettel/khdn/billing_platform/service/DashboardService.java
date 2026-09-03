@@ -26,11 +26,15 @@ import org.apache.poi.ss.usermodel.HorizontalAlignment;
 import org.apache.poi.ss.usermodel.VerticalAlignment;
 import org.apache.poi.ss.usermodel.Font;
 
+import vn.viettel.khdn.billing_platform.repository.RegionTargetRepository;
+import vn.viettel.khdn.billing_platform.model.RegionTarget;
+
 @Service
 @RequiredArgsConstructor
 public class DashboardService {
 
     private final CustomerBillingRecordRepository repository;
+    private final RegionTargetRepository regionTargetRepository;
 
     public ResDashboardOverviewDTO getDashboardOverview(Long periodId, User currentUser) {
         List<Object[]> stats;
@@ -91,6 +95,18 @@ public class DashboardService {
             recordsProgressPercentage = (double) collectedRecords / totalRecords * 100;
         }
 
+        Double targetCustomerPercent = null;
+        Double targetRevenuePercent = null;
+
+        Long regionIdForTarget = currentUser.getRole() == RoleEnum.ADMIN ? null : (currentUser.getRegion() != null ? currentUser.getRegion().getId() : null);
+        if (regionIdForTarget != null) {
+            java.util.Optional<RegionTarget> optTarget = regionTargetRepository.findByRegionIdAndBillingPeriodId(regionIdForTarget, periodId);
+            if (optTarget.isPresent()) {
+                targetCustomerPercent = optTarget.get().getTargetCustomerPercent();
+                targetRevenuePercent = optTarget.get().getTargetRevenuePercent();
+            }
+        }
+
         return new ResDashboardOverviewDTO(
                 totalRecords,
                 collectedRecords,
@@ -98,7 +114,9 @@ public class DashboardService {
                 expectedAmount,
                 collectedAmount,
                 amountProgressPercentage,
-                recordsProgressPercentage
+                recordsProgressPercentage,
+                targetCustomerPercent,
+                targetRevenuePercent
         );
     }
 
