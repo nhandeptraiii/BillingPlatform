@@ -104,8 +104,13 @@ public class DashboardController {
             return ResponseEntity.ok(Page.empty(pageable));
         }
         User currentUser = getCurrentUser();
-        Long regionId = currentUser.getRole() == vn.viettel.khdn.billing_platform.model.enums.RoleEnum.ADMIN ? null : (currentUser.getRegion() != null ? currentUser.getRegion().getId() : null);
-        Page<CustomerBillingRecord> page = recordRepository.findWarningsByPeriod(periodId, regionId, pageable);
+        Page<CustomerBillingRecord> page;
+        if (currentUser.getRole() == vn.viettel.khdn.billing_platform.model.enums.RoleEnum.NVKD) {
+            page = recordRepository.findWarningsByPeriodAndManager(periodId, currentUser.getId(), pageable);
+        } else {
+            Long regionId = currentUser.getRole() == vn.viettel.khdn.billing_platform.model.enums.RoleEnum.ADMIN ? null : (currentUser.getRegion() != null ? currentUser.getRegion().getId() : null);
+            page = recordRepository.findWarningsByPeriod(periodId, regionId, pageable);
+        }
         return ResponseEntity.ok(page.map(recordService::toDTO));
     }
 

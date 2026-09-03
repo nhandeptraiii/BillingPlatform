@@ -22,5 +22,8 @@ public record ReqUserCreateDTO(
     @NotNull(message = "Role không được để trống")
     RoleEnum role,
 
-    Long regionId
+    Long regionId,
+
+    // Tuỳ chọn: ADMIN có thể chỉ định NVKD quản lý người dùng này
+    Long managerId
 ) {}

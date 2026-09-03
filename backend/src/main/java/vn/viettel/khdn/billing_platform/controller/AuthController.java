@@ -53,6 +53,8 @@ public class AuthController {
             user.getRole(),
             user.getRegion() != null ? user.getRegion().getId() : null,
             user.getRegion() != null ? user.getRegion().getName() : null,
+            user.getManager() != null ? user.getManager().getId() : null,
+            user.getManager() != null ? user.getManager().getFullName() : null,
             user.getCreatedAt(),
             user.getUpdatedAt()
         );

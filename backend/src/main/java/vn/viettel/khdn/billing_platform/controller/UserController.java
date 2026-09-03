@@ -61,6 +61,7 @@ public class UserController {
     public ResponseEntity<Page<ResUserDTO>> getUsers(
             @RequestParam(value = "keyword", required = false) String keyword,
             @RequestParam(value = "role", required = false) String role,
+            @RequestParam(value = "managerId", required = false) Long managerId,
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "10") int size) {
 
@@ -75,13 +76,21 @@ public class UserController {
             }
         }
         ResUserDTO currentUser = getCurrentUser();
-        return ResponseEntity.ok(userService.searchUsers(currentUser, roleEnum, keyword, pageable));
+        return ResponseEntity.ok(userService.searchUsers(currentUser, roleEnum, keyword, managerId, pageable));
     }
 
-    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN', 'NVKD')")
     @GetMapping("/{id}")
     public ResponseEntity<ResUserDTO> getById(@PathVariable("id") Long id) {
         return ResponseEntity.ok(userService.getById(id));
+    }
+
+    @PreAuthorize("hasAnyAuthority('ADMIN')")
+    @PatchMapping("/{id}/manager")
+    public ResponseEntity<ResUserDTO> assignManager(
+            @PathVariable("id") Long id,
+            @RequestParam(value = "managerId", required = false) Long managerId) {
+        return ResponseEntity.ok(userService.assignManager(id, managerId));
     }
 
     @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN', 'NVKD')")

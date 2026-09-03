@@ -12,6 +12,8 @@ public record ResUserDTO(
     RoleEnum role,
     Long regionId,
     String regionName,
+    Long managerId,
+    String managerName,
     Instant createdAt,
     Instant updatedAt
 ) {}

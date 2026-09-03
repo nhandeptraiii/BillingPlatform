@@ -50,10 +50,12 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    public Page<ResUserDTO> searchUsers(ResUserDTO currentUser, RoleEnum role, String keyword, Pageable pageable) {
+    public Page<ResUserDTO> searchUsers(ResUserDTO currentUser, RoleEnum role, String keyword, Long managerId, Pageable pageable) {
         // ADMIN: xem tất cả; MANAGER & NVKD: chỉ xem trong khu vực của mình
         Long regionId = currentUser.role() == RoleEnum.ADMIN ? null : currentUser.regionId();
-        return userRepository.searchUsers(regionId, role, keyword, pageable)
+        // NVKD: tự động filter theo managerId của chính mình
+        Long effectiveManagerId = currentUser.role() == RoleEnum.NVKD ? currentUser.id() : managerId;
+        return userRepository.searchUsers(regionId, role, effectiveManagerId, keyword, pageable)
             .map(this::convertToResUserDTO);
     }
 
@@ -92,17 +94,41 @@ public class UserService {
         user.setPassword(passwordEncoder.encode(req.password()));
         user.setRole(req.role());
 
-        if (currentUser.role() == RoleEnum.MANAGER || currentUser.role() == RoleEnum.NVKD) {
+        if (currentUser.role() == RoleEnum.MANAGER) {
+            // GĐKV: tạo NVKD hoặc CONSULTANT trong khu vực của mình
             Region region = regionRepository.findById(currentUser.regionId())
-                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy khu vực của người tạo"));
+                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy khu vực của GĐKV"));
             user.setRegion(region);
+            // GĐKV có thể gán CONSULTANT cho một NVKD cụ thể trong khu vực
+            if (req.managerId() != null) {
+                User manager = userRepository.findById(req.managerId())
+                    .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy NVKD ID: " + req.managerId()));
+                if (manager.getRole() != RoleEnum.NVKD || !manager.getRegion().getId().equals(currentUser.regionId())) {
+                    throw new IllegalArgumentException("NVKD không thuộc khu vực của bạn");
+                }
+                user.setManager(manager);
+            }
+        } else if (currentUser.role() == RoleEnum.NVKD) {
+            // NVKD: chỉ tạo CONSULTANT, gán khu vực và manager = NVKD này
+            Region region = regionRepository.findById(currentUser.regionId())
+                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy khu vực của NVKD"));
+            user.setRegion(region);
+            User manager = userRepository.findById(currentUser.id())
+                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy người dùng NVKD"));
+            user.setManager(manager);
         } else {
+            // ADMIN: toàn quyền, có thể chỉ định khu vực và manager tùy ý
             if (req.regionId() != null) {
                 Region region = regionRepository.findById(req.regionId())
                     .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy khu vực ID: " + req.regionId()));
                 user.setRegion(region);
             } else if (req.role() != RoleEnum.ADMIN) {
                 throw new IllegalArgumentException("Khu vực không được để trống khi tạo " + req.role());
+            }
+            if (req.managerId() != null) {
+                User manager = userRepository.findById(req.managerId())
+                    .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy người quản lý ID: " + req.managerId()));
+                user.setManager(manager);
             }
         }
 
@@ -115,13 +141,21 @@ public class UserService {
         User user = userRepository.findById(id)
             .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy người dùng ID: " + id));
 
-        // MANAGER & NVKD: chỉ được sửa CONSULTANT thuộc cùng khu vực
-        if (currentUser.role() == RoleEnum.MANAGER || currentUser.role() == RoleEnum.NVKD) {
-            if (user.getRole() != RoleEnum.CONSULTANT) {
-                throw new IllegalArgumentException("Bạn chỉ được sửa thông tin tài khoản CONSULTANT");
+        if (currentUser.role() == RoleEnum.MANAGER) {
+            // GĐKV: được sửa NVKD và CONSULTANT trong khu vực của mình
+            if (user.getRole() == RoleEnum.MANAGER || user.getRole() == RoleEnum.ADMIN) {
+                throw new IllegalArgumentException("GĐKV không được sửa tài khoản cấp trên");
             }
             if (user.getRegion() == null || !user.getRegion().getId().equals(currentUser.regionId())) {
-                throw new IllegalArgumentException("Tư vấn viên này không thuộc khu vực của bạn");
+                throw new IllegalArgumentException("Nhân viên này không thuộc khu vực của bạn");
+            }
+        } else if (currentUser.role() == RoleEnum.NVKD) {
+            // NVKD: chỉ được sửa CONSULTANT trong nhóm của mình
+            if (user.getRole() != RoleEnum.CONSULTANT) {
+                throw new IllegalArgumentException("NVKD chỉ được sửa tài khoản CONSULTANT");
+            }
+            if (user.getManager() == null || !user.getManager().getId().equals(currentUser.id())) {
+                throw new IllegalArgumentException("Tư vấn viên này không thuộc nhóm của bạn");
             }
         }
 
@@ -185,23 +219,55 @@ public class UserService {
         return convertToResUserDTO(saved);
     }
 
+    public ResUserDTO assignManager(Long userId, Long managerId) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy người dùng ID: " + userId));
+
+        if (managerId == null) {
+            user.setManager(null);
+        } else {
+            User manager = userRepository.findById(managerId)
+                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy người quản lý ID: " + managerId));
+            if (manager.getRole() != RoleEnum.NVKD && manager.getRole() != RoleEnum.MANAGER) {
+                throw new IllegalArgumentException("Người quản lý phải có role NVKD hoặc MANAGER");
+            }
+            user.setManager(manager);
+        }
+
+        return convertToResUserDTO(userRepository.save(user));
+    }
+
     public void delete(Long id, ResUserDTO currentUser) {
         User target = userRepository.findById(id)
             .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy người dùng ID: " + id));
 
-        // MANAGER & NVKD: chỉ xóa được CONSULTANT cùng khu vực
-        if (currentUser.role() == RoleEnum.MANAGER || currentUser.role() == RoleEnum.NVKD) {
-            if (target.getRole() != RoleEnum.CONSULTANT) {
-                throw new IllegalArgumentException("Bạn chỉ được xóa tài khoản CONSULTANT");
+        if (currentUser.role() == RoleEnum.MANAGER) {
+            // GĐKV: được xóa NVKD và CONSULTANT trong khu vực
+            if (target.getRole() == RoleEnum.MANAGER || target.getRole() == RoleEnum.ADMIN) {
+                throw new IllegalArgumentException("GĐKV không được xóa tài khoản cấp trên");
             }
             if (target.getRegion() == null || !target.getRegion().getId().equals(currentUser.regionId())) {
-                throw new IllegalArgumentException("Tư vấn viên này không thuộc khu vực của bạn");
+                throw new IllegalArgumentException("Nhân viên này không thuộc khu vực của bạn");
+            }
+        } else if (currentUser.role() == RoleEnum.NVKD) {
+            // NVKD: chỉ xóa được CONSULTANT trong nhóm của mình
+            if (target.getRole() != RoleEnum.CONSULTANT) {
+                throw new IllegalArgumentException("NVKD chỉ được xóa tài khoản CONSULTANT");
+            }
+            if (target.getManager() == null || !target.getManager().getId().equals(currentUser.id())) {
+                throw new IllegalArgumentException("Tư vấn viên này không thuộc nhóm của bạn");
             }
         }
 
-        // ADMIN không được xóa ADMIN khác (tùy chọn bảo vệ)
+        // ADMIN không được xóa ADMIN khác (bảo vệ)
         if (currentUser.role() == RoleEnum.ADMIN && target.getRole() == RoleEnum.ADMIN) {
             throw new IllegalArgumentException("Không thể xóa tài khoản Admin");
+        }
+
+        // Nếu xóa NVKD: SET NULL manager_id cho các CONSULTANT trong nhóm (Option A)
+        // CONSULTANT vẫn giữ nguyên, thuộc khu vực nhưng manager = null (trực thuộc GĐKV)
+        if (target.getRole() == RoleEnum.NVKD) {
+            userRepository.clearManagerId(id);
         }
 
         // SET NULL assigned_consultant trên tất cả bản ghi thu cước trước khi xóa user
@@ -224,13 +290,21 @@ public class UserService {
         User target = userRepository.findById(userId)
             .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy người dùng ID: " + userId));
 
-        // MANAGER & NVKD: chỉ reset password cho CONSULTANT thuộc khu vực của mình
-        if (currentUser.role() == RoleEnum.MANAGER || currentUser.role() == RoleEnum.NVKD) {
-            if (target.getRole() != RoleEnum.CONSULTANT) {
-                throw new IllegalArgumentException("Bạn chỉ được đặt lại mật khẩu cho tài khoản CONSULTANT");
+        if (currentUser.role() == RoleEnum.MANAGER) {
+            // GĐKV: được reset password cho NVKD và CONSULTANT trong khu vực
+            if (target.getRole() == RoleEnum.MANAGER || target.getRole() == RoleEnum.ADMIN) {
+                throw new IllegalArgumentException("GĐKV không được đặt lại mật khẩu tài khoản cấp trên");
             }
             if (target.getRegion() == null || !target.getRegion().getId().equals(currentUser.regionId())) {
-                throw new IllegalArgumentException("Tư vấn viên này không thuộc khu vực của bạn");
+                throw new IllegalArgumentException("Nhân viên này không thuộc khu vực của bạn");
+            }
+        } else if (currentUser.role() == RoleEnum.NVKD) {
+            // NVKD: chỉ reset password cho CONSULTANT trong nhóm của mình
+            if (target.getRole() != RoleEnum.CONSULTANT) {
+                throw new IllegalArgumentException("NVKD chỉ được đặt lại mật khẩu cho tài khoản CONSULTANT");
+            }
+            if (target.getManager() == null || !target.getManager().getId().equals(currentUser.id())) {
+                throw new IllegalArgumentException("Tư vấn viên này không thuộc nhóm của bạn");
             }
         }
 
@@ -283,9 +357,14 @@ public class UserService {
                 user.setStatus("ACTIVE");
 
                 if (region != null) {
-                    user.setRegion(region); // Manager import -> gán khu vực của Manager
+                    user.setRegion(region); // Manager/NVKD import -> gán khu vực
                 } else {
                     user.setRegion(null); // Admin import -> Tạm thời không có khu vực
+                }
+
+                // NVKD import -> tự động set manager là NVKD đó
+                if (currentUser.role() == RoleEnum.NVKD) {
+                    userRepository.findById(currentUser.id()).ifPresent(user::setManager);
                 }
 
                 userRepository.save(user);
@@ -311,12 +390,13 @@ public class UserService {
             user.getId(),
             user.getUsername(),
             user.getFullName(),
-
             user.getPhone(),
             user.getStatus(),
             user.getRole(),
             user.getRegion() != null ? user.getRegion().getId() : null,
             user.getRegion() != null ? user.getRegion().getName() : null,
+            user.getManager() != null ? user.getManager().getId() : null,
+            user.getManager() != null ? user.getManager().getFullName() : null,
             user.getCreatedAt(),
             user.getUpdatedAt()
         );

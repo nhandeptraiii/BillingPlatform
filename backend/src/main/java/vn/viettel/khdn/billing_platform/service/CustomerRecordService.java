@@ -327,6 +327,9 @@ public class CustomerRecordService {
      * - INCONSISTENT / COLLECTED_NOT_MARKED từ import đối chiếu
      */
     public Page<CustomerBillingRecord> getWarnings(Long periodId, User currentUser, Pageable pageable) {
+        if (currentUser.getRole() == RoleEnum.NVKD) {
+            return recordRepository.findWarningsByPeriodAndManager(periodId, currentUser.getId(), pageable);
+        }
         Long regionId = currentUser.getRole() == RoleEnum.ADMIN ? null : (currentUser.getRegion() != null ? currentUser.getRegion().getId() : null);
         return recordRepository.findWarningsByPeriod(periodId, regionId, pageable);
     }

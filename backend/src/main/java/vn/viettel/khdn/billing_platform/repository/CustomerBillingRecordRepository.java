@@ -73,6 +73,22 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
             @Param("regionId") Long regionId,
             Pageable pageable);
 
+    // Cảnh báo dành cho NVKD (lọc theo nhóm quản lý)
+    @Query("""
+        SELECT r FROM CustomerBillingRecord r
+        WHERE r.billingPeriod.id = :periodId
+          AND (r.assignedConsultant.manager.id = :managerId OR r.assignedConsultant.id = :managerId)
+          AND (
+            (r.collectionStatus = 'DA_THANH_TOAN' AND r.debtStatus = 'CHUA_GACH_NO')
+            OR r.syncWarning = 'INCONSISTENT'
+            OR r.syncWarning = 'COLLECTED_NOT_MARKED'
+          )
+        """)
+    Page<CustomerBillingRecord> findWarningsByPeriodAndManager(
+            @Param("periodId") Long periodId,
+            @Param("managerId") Long managerId,
+            Pageable pageable);
+
 
     // Tìm kiếm full-text + filter đa chiều (MANAGER xem tất cả)
     @Query("""

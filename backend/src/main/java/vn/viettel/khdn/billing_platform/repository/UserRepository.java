@@ -18,11 +18,16 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     boolean existsByUsername(String username);
 
+    // SET NULL manager_id cho tất cả CONSULTANT của NVKD bị xóa
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("UPDATE User u SET u.manager = NULL WHERE u.manager.id = :managerId")
+    void clearManagerId(@Param("managerId") Long managerId);
 
     @Query(value = """
             SELECT u FROM User u
             WHERE (:role IS NULL OR u.role = :role)
               AND (cast(:regionId as Long) IS NULL OR u.region.id = :regionId)
+              AND (cast(:managerId as Long) IS NULL OR u.manager.id = :managerId)
               AND (
                 :keyword IS NULL
                 OR LOWER(u.fullName) LIKE LOWER(CONCAT('%', :keyword, '%'))
@@ -33,6 +38,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Page<User> searchUsers(
             @Param("regionId") Long regionId,
             @Param("role") RoleEnum role,
+            @Param("managerId") Long managerId,
             @Param("keyword") String keyword,
             Pageable pageable);
 }
