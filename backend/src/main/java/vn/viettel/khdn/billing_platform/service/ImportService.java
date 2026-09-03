@@ -1,17 +1,30 @@
 package vn.viettel.khdn.billing_platform.service;
 
+import java.io.InputStream;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.CellType;
+import org.apache.poi.ss.usermodel.FillPatternType;
+import org.apache.poi.ss.usermodel.Font;
+import org.apache.poi.ss.usermodel.IndexedColors;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import com.github.pjfanning.xlsx.StreamingReader;
 
@@ -22,12 +35,14 @@ import vn.viettel.khdn.billing_platform.model.User;
 import vn.viettel.khdn.billing_platform.model.dto.ImportResultDTO;
 import vn.viettel.khdn.billing_platform.model.enums.CollectionStatusEnum;
 import vn.viettel.khdn.billing_platform.model.enums.DebtStatusEnum;
+import vn.viettel.khdn.billing_platform.model.enums.RoleEnum;
 import vn.viettel.khdn.billing_platform.model.enums.SyncWarningEnum;
 import vn.viettel.khdn.billing_platform.repository.BillingPeriodRepository;
 import vn.viettel.khdn.billing_platform.repository.CustomerBillingRecordRepository;
 import vn.viettel.khdn.billing_platform.repository.UserRepository;
 
 @Service
+@SuppressWarnings("null")
 public class ImportService {
 
     private final BillingPeriodRepository billingPeriodRepository;
@@ -103,7 +118,7 @@ public class ImportService {
     // =========================================================================
 
     public byte[] generateStartOfPeriodTemplate() {
-        try (Workbook workbook = new org.apache.poi.xssf.usermodel.XSSFWorkbook();
+        try (Workbook workbook = new XSSFWorkbook();
              java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream()) {
             
             Sheet sheet = workbook.createSheet("Import Dau Ky");
@@ -153,7 +168,7 @@ public class ImportService {
     }
 
     public byte[] generateReconciliationTemplate() {
-        try (Workbook workbook = new org.apache.poi.xssf.usermodel.XSSFWorkbook();
+        try (Workbook workbook = new XSSFWorkbook();
              java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream()) {
             
             Sheet sheet = workbook.createSheet("Bao Cao Viettel");
@@ -217,6 +232,7 @@ public class ImportService {
      * Cột L (11): Loại Dịch Vụ     — serviceType (*)
      * Cột M (12): Nội Dung QC      — adsContent
      */
+    @Transactional
     public ImportResultDTO importStartOfPeriod(MultipartFile file, User createdBy) {
         List<ImportResultDTO.ImportErrorRow> errors = new ArrayList<>();
         int successCount = 0;
@@ -228,7 +244,8 @@ public class ImportService {
         Map<String, Optional<User>> userCache = new HashMap<>();
         Set<User> consultantsToUpdate = new HashSet<>();
 
-        try (Workbook workbook = StreamingReader.builder().rowCacheSize(200).bufferSize(65536).open(file.getInputStream())) {
+        try (InputStream is = file.getInputStream();
+             Workbook workbook = StreamingReader.builder().rowCacheSize(200).bufferSize(65536).open(is)) {
             Sheet sheet = workbook.getSheetAt(0);
             
             for (Row row : sheet) {
@@ -415,10 +432,12 @@ public class ImportService {
      *   Pass 2: Chia Mã HĐ thành batch CHUNK_SIZE → SELECT IN (batch) → xử lý → save → next
      *           → Không N+1 (tránh chậm), không load all (tránh OOM)
      */
+    @Transactional
     public ImportResultDTO importReconciliation(MultipartFile file, Long periodId, User currentUser) {
         return importReconciliation(file, periodId, currentUser, false);
     }
 
+    @Transactional
     public ImportResultDTO importReconciliation(MultipartFile file, Long periodId, User currentUser, boolean dryRun) {
         List<ImportResultDTO.ImportErrorRow> errors = new ArrayList<>();
         int autoUpdatedCount = 0;
@@ -429,15 +448,16 @@ public class ImportService {
 
         // ── PASS 1: Đọc toàn bộ file, gom theo Mã HĐ + Số TB ──────────────────
         // Một nhóm được coi là đã gạch nợ khi có tiền trả và không còn nợ.
-        java.util.LinkedHashMap<ReconciliationKey, ReconciliationGroup> groups = new java.util.LinkedHashMap<>();
+        Map<ReconciliationKey, ReconciliationGroup> groups = new LinkedHashMap<>();
         // Lưu số dòng đầu tiên gặp mỗi cặp key để báo lỗi.
         boolean foundHeader = false;
         int totalInputRows = 0;
 
-        try (Workbook workbook = StreamingReader.builder()
+        try (InputStream is = file.getInputStream();
+             Workbook workbook = StreamingReader.builder()
                 .rowCacheSize(200)
                 .bufferSize(65536)
-                .open(file.getInputStream())) {
+                .open(is)) {
             Sheet sheet = workbook.getSheetAt(0);
 
             for (Row row : sheet) {
@@ -484,7 +504,7 @@ public class ImportService {
         List<CustomerBillingRecord> saveBuffer = new ArrayList<>();
 
         Long currentUserRegionId = (currentUser.getRegion() != null) ? currentUser.getRegion().getId() : null;
-        boolean isManager = currentUser.getRole() == vn.viettel.khdn.billing_platform.model.enums.RoleEnum.MANAGER;
+        boolean isManager = currentUser.getRole() == RoleEnum.MANAGER;
 
         List<String> allCodes = groups.keySet().stream()
             .map(ReconciliationKey::customerCode)
@@ -494,14 +514,14 @@ public class ImportService {
 
         for (int i = 0; i < allCodes.size(); i += CHUNK_SIZE) {
             List<String> chunk = allCodes.subList(i, Math.min(i + CHUNK_SIZE, allCodes.size()));
-            java.util.Set<String> chunkCodes = new java.util.HashSet<>(chunk);
+            Set<String> chunkCodes = new HashSet<>(chunk);
 
             // 1 câu SELECT IN cho cả batch → không N+1, không OOM
             List<CustomerBillingRecord> dbRecords =
                 recordRepository.findAllByCustomerCodeInAndBillingPeriodId(chunk, periodId);
 
             // Group DB records theo cùng key với file RP2.
-            java.util.Map<ReconciliationKey, List<CustomerBillingRecord>> byKey = new java.util.HashMap<>();
+            Map<ReconciliationKey, List<CustomerBillingRecord>> byKey = new HashMap<>();
             for (CustomerBillingRecord r : dbRecords) {
                 ReconciliationKey key = new ReconciliationKey(
                     normalizeContractCode(r.getCustomerCode()),
@@ -510,13 +530,13 @@ public class ImportService {
             }
 
             // Xử lý từng cặp Mã HĐ + Số TB trong chunk.
-            for (java.util.Map.Entry<ReconciliationKey, ReconciliationGroup> entry : groups.entrySet()) {
+            for (Map.Entry<ReconciliationKey, ReconciliationGroup> entry : groups.entrySet()) {
                 ReconciliationKey key = entry.getKey();
                 if (!chunkCodes.contains(key.customerCode())) continue;
 
                 ReconciliationGroup group = entry.getValue();
                 int rowNum = group.firstRowNumber;
-                List<CustomerBillingRecord> records = byKey.getOrDefault(key, java.util.Collections.emptyList());
+                List<CustomerBillingRecord> records = byKey.getOrDefault(key, Collections.emptyList());
 
                 if (records.isEmpty()) {
                     errors.add(new ImportResultDTO.ImportErrorRow(rowNum,
@@ -629,10 +649,10 @@ public class ImportService {
     private String normalizeContractCode(String raw) {
         if (raw == null || raw.isBlank()) return "";
         try {
-            // Thử parse số khoa học (scientific notation) → long
-            double d = Double.parseDouble(raw);
-            return String.valueOf((long) d);
-        } catch (NumberFormatException e) {
+            // Thử parse dạng số (hỗ trợ scientific notation) bằng BigDecimal để bảo toàn độ chính xác
+            BigDecimal bd = new BigDecimal(raw.trim());
+            return bd.toBigInteger().toString();
+        } catch (Exception e) {
             // Không phải số → trả về nguyên
             return raw.trim();
         }

@@ -14,9 +14,11 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.persistence.EntityNotFoundException;
 import vn.viettel.khdn.billing_platform.model.CustomerBillingRecord;
@@ -36,6 +38,7 @@ import vn.viettel.khdn.billing_platform.model.BillingPeriod;
 import vn.viettel.khdn.billing_platform.model.dto.ReqCreateCustomerRecordDTO;
 
 @Service
+@SuppressWarnings("null")
 public class CustomerRecordService {
 
     private final CustomerBillingRecordRepository recordRepository;
@@ -124,6 +127,7 @@ public class CustomerRecordService {
         return record;
     }
 
+    @Transactional
     public CustomerBillingRecord createRecord(ReqCreateCustomerRecordDTO req, User currentUser) {
         BillingPeriod period = billingPeriodRepository.findById(req.billingPeriodId())
             .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy kỳ ID: " + req.billingPeriodId()));
@@ -158,7 +162,8 @@ public class CustomerRecordService {
      * Chỉ cập nhật collectionStatus, KHÔNG thay đổi debtStatus.
      * collectionStatus: CHUA_THU → DA_THANH_TOAN
      */
-    public CustomerBillingRecord printBill(Long id, java.math.BigDecimal collectedAmount,
+    @Transactional
+    public CustomerBillingRecord printBill(Long id, BigDecimal collectedAmount,
                                             User currentUser) {
         CustomerBillingRecord record = getById(id, currentUser);
 
@@ -184,6 +189,7 @@ public class CustomerRecordService {
      * Điều kiện: phải đã thu tiền trước (collectionStatus = DA_THANH_TOAN).
      * debtStatus: CHUA_GACH_NO → DA_GACH_NO
      */
+    @Transactional
     public CustomerBillingRecord markDebt(Long id, User currentUser) {
         CustomerBillingRecord record = getById(id, currentUser);
 
@@ -211,7 +217,7 @@ public class CustomerRecordService {
     /**
      * Gạch nợ tất cả trong kỳ
      */
-    @org.springframework.transaction.annotation.Transactional
+    @Transactional
     public int markDebtByPeriod(Long periodId, User currentUser) {
         Long regionId = currentUser.getRole() == RoleEnum.ADMIN ? null : (currentUser.getRegion() != null ? currentUser.getRegion().getId() : null);
         List<CustomerBillingRecord> records = recordRepository.findAllByBillingPeriodId(periodId);
@@ -237,7 +243,7 @@ public class CustomerRecordService {
         return changedRecords.size();
     }
 
-    @org.springframework.transaction.annotation.Transactional
+    @Transactional
     public int bulkMarkDebtWithFilter(User currentUser, Long periodId, CollectionStatusEnum collectionStatus,
                                       DebtStatusEnum debtStatus, Long assignedUserId,
                                       LocalDate billPrintedDate, String subscriberNumber, String customerName, String fullAddress, String search) {
@@ -281,7 +287,7 @@ public class CustomerRecordService {
         return changedRecords.size();
     }
 
-    @org.springframework.transaction.annotation.Transactional
+    @Transactional
     public int bulkPayWithFilter(User currentUser, Long periodId, CollectionStatusEnum collectionStatus,
                                  DebtStatusEnum debtStatus, Long assignedUserId,
                                  LocalDate billPrintedDate, String subscriberNumber, String customerName, String fullAddress, String search) {
@@ -400,11 +406,12 @@ public class CustomerRecordService {
                               DebtStatusEnum debtStatus, Long assignedUserId, LocalDate billPrintedDate, String subscriberNumber, String customerName, String fullAddress, String search) {
         // Lấy tất cả records dựa theo bộ lọc (không phân trang) bằng cách gọi search với size max
         Page<CustomerBillingRecord> pageResult = search(currentUser, periodId, collectionStatus, debtStatus,
-            assignedUserId, billPrintedDate, subscriberNumber, customerName, fullAddress, search, org.springframework.data.domain.PageRequest.of(0, Integer.MAX_VALUE));
+            assignedUserId, billPrintedDate, subscriberNumber, customerName, fullAddress, search, PageRequest.of(0, Integer.MAX_VALUE));
         
         List<CustomerBillingRecord> records = pageResult.getContent();
         
-        try (Workbook workbook = new SXSSFWorkbook(100); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+        SXSSFWorkbook workbook = new SXSSFWorkbook(100);
+        try (workbook; ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             Sheet sheet = workbook.createSheet("Danh sách khách hàng");
 
             // Header
@@ -449,6 +456,8 @@ public class CustomerRecordService {
             return out.toByteArray();
         } catch (Exception e) {
             throw new RuntimeException("Lỗi khi tạo file Excel: " + e.getMessage(), e);
+        } finally {
+            workbook.dispose();
         }
     }
 }

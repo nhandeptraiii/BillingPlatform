@@ -1,17 +1,21 @@
 package vn.viettel.khdn.billing_platform.service;
 
+import java.io.InputStream;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.regex.Pattern;
 
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import org.springframework.web.multipart.MultipartFile;
-import org.apache.poi.ss.usermodel.*;
-import java.io.InputStream;
+
 import jakarta.persistence.EntityExistsException;
 import jakarta.persistence.EntityNotFoundException;
 import vn.viettel.khdn.billing_platform.model.User;
@@ -27,7 +31,10 @@ import vn.viettel.khdn.billing_platform.model.Region;
 
 @Service
 @Transactional
+@SuppressWarnings("null")
 public class UserService {
+
+    private static final Pattern PHONE_PATTERN = Pattern.compile("^0\\d{9,10}$");
 
     private final UserRepository userRepository;
     private final RegionRepository regionRepository;
@@ -46,7 +53,7 @@ public class UserService {
     public List<ResUserDTO> getAll() {
         return userRepository.findAll().stream()
             .map(this::convertToResUserDTO)
-            .collect(Collectors.toList());
+            .toList();
     }
 
     @Transactional(readOnly = true)
@@ -211,7 +218,7 @@ public class UserService {
     public ResUserDTO setStatus(Long id, String status) {
         User user = userRepository.findById(id)
             .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy người dùng ID: " + id));
-        if (!status.equals("ACTIVE") && !status.equals("INACTIVE")) {
+        if (!"ACTIVE".equals(status) && !"INACTIVE".equals(status)) {
             throw new IllegalArgumentException("Status không hợp lệ: " + status);
         }
         user.setStatus(status);
@@ -340,7 +347,7 @@ public class UserService {
                     continue; // Bỏ qua các dòng thiếu dữ liệu bắt buộc
                 }
 
-                if (phone == null || !phone.matches("^0\\d{9,10}$")) {
+                if (phone == null || !PHONE_PATTERN.matcher(phone).matches()) {
                     continue; // Bỏ qua nếu SĐT không hợp lệ (bắt đầu bằng 0, độ dài 10-11 số)
                 }
 
@@ -380,7 +387,18 @@ public class UserService {
         if (cell == null) return "";
         return switch (cell.getCellType()) {
             case STRING -> cell.getStringCellValue().trim();
-            case NUMERIC -> String.valueOf((long) cell.getNumericCellValue());
+            case NUMERIC -> {
+                double val = cell.getNumericCellValue();
+                if (val == Math.floor(val)) {
+                    String strVal = String.valueOf((long) val);
+                    // Nếu là số điện thoại 9 số (do Excel cắt mất số 0 ở đầu), tự động bù số 0
+                    if (strVal.length() == 9 && !strVal.startsWith("0")) {
+                        yield "0" + strVal;
+                    }
+                    yield strVal;
+                }
+                yield String.valueOf(val);
+            }
             default -> "";
         };
     }

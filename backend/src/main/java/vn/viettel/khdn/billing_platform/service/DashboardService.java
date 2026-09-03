@@ -2,9 +2,10 @@ package vn.viettel.khdn.billing_platform.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.khdn.billing_platform.model.dto.dashboard.ResConsultantPerformanceDTO;
 import vn.viettel.khdn.billing_platform.model.dto.dashboard.ResDashboardOverviewDTO;
-import vn.viettel.khdn.billing_platform.model.enums.CollectionStatusEnum;
+import vn.viettel.khdn.billing_platform.model.dto.dashboard.ResConsultantDailyStatsDTO;
 import vn.viettel.khdn.billing_platform.repository.CustomerBillingRecordRepository;
 import vn.viettel.khdn.billing_platform.model.User;
 import vn.viettel.khdn.billing_platform.model.enums.DebtStatusEnum;
@@ -12,8 +13,12 @@ import vn.viettel.khdn.billing_platform.model.enums.RoleEnum;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.io.ByteArrayOutputStream;
 
 import org.apache.poi.ss.usermodel.Row;
@@ -31,6 +36,8 @@ import vn.viettel.khdn.billing_platform.model.RegionTarget;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
+@SuppressWarnings("null")
 public class DashboardService {
 
     private final CustomerBillingRecordRepository repository;
@@ -55,7 +62,6 @@ public class DashboardService {
         BigDecimal collectedAmount = BigDecimal.ZERO;
 
         for (Object[] row : stats) {
-            CollectionStatusEnum collectionStatus = (CollectionStatusEnum) row[0];
             DebtStatusEnum debtStatus = (DebtStatusEnum) row[1];
             Long count = ((Number) row[2]).longValue();
             BigDecimal amtDue = row[3] != null ? new BigDecimal(row[3].toString()) : BigDecimal.ZERO;
@@ -64,27 +70,24 @@ public class DashboardService {
             totalRecords += count;
             expectedAmount = expectedAmount.add(amtDue);
 
-            // Số lượng hồ sơ đã thu (totalCollectedRecords): Căn cứ vào gạch nợ
+            // Số lượng hồ sơ đã thu (totalCollectedRecords) & gạch nợ: Căn cứ vào gạch nợ
             if (DebtStatusEnum.DA_GACH_NO == debtStatus) {
                 collectedRecords += count;
+                markedDebtRecords += count;
             }
 
             // Số tiền đã thu (totalCollectedAmount): Dựa trên collectedAmount (ghi nhận từ import gạch nợ)
             // Nếu collectedAmount > 0 → cộng vào (bao gồm cả partial payment)
             // Fallback: đã gạch nợ nhưng collectedAmount trống (dữ liệu cũ) → lấy amountDue
-            if (colAmt != null && colAmt.compareTo(BigDecimal.ZERO) > 0) {
+            if (colAmt.compareTo(BigDecimal.ZERO) > 0) {
                 collectedAmount = collectedAmount.add(colAmt);
             } else if (DebtStatusEnum.DA_GACH_NO == debtStatus) {
                 collectedAmount = collectedAmount.add(amtDue);
             }
-
-            if (DebtStatusEnum.DA_GACH_NO == debtStatus) {
-                markedDebtRecords += count;
-            }
         }
 
-        Double amountProgressPercentage = 0.0;
-        Double recordsProgressPercentage = 0.0;
+        double amountProgressPercentage = 0.0;
+        double recordsProgressPercentage = 0.0;
         
         if (expectedAmount.compareTo(BigDecimal.ZERO) > 0) {
             amountProgressPercentage = collectedAmount.divide(expectedAmount, 4, RoundingMode.HALF_UP)
@@ -101,7 +104,7 @@ public class DashboardService {
 
         Long regionIdForTarget = currentUser.getRole() == RoleEnum.ADMIN ? null : (currentUser.getRegion() != null ? currentUser.getRegion().getId() : null);
         if (regionIdForTarget != null) {
-            java.util.Optional<RegionTarget> optTarget = regionTargetRepository.findByRegionIdAndBillingPeriodId(regionIdForTarget, periodId);
+            Optional<RegionTarget> optTarget = regionTargetRepository.findByRegionIdAndBillingPeriodId(regionIdForTarget, periodId);
             if (optTarget.isPresent()) {
                 targetCustomerPercent = optTarget.get().getTargetCustomerPercent();
                 targetRevenuePercent = optTarget.get().getTargetRevenuePercent();
@@ -154,10 +157,10 @@ public class DashboardService {
         return result;
     }
 
-    public List<vn.viettel.khdn.billing_platform.model.dto.dashboard.ResConsultantDailyStatsDTO> getDailyStats(java.time.LocalDate date, User currentUser) {
-        java.time.ZoneId zoneId = java.time.ZoneId.of("Asia/Ho_Chi_Minh");
-        java.time.Instant startOfDay = date.atStartOfDay(zoneId).toInstant();
-        java.time.Instant endOfDay = date.plusDays(1).atStartOfDay(zoneId).toInstant();
+    public List<ResConsultantDailyStatsDTO> getDailyStats(LocalDate date, User currentUser) {
+        ZoneId zoneId = ZoneId.of("Asia/Ho_Chi_Minh");
+        Instant startOfDay = date.atStartOfDay(zoneId).toInstant();
+        Instant endOfDay = date.plusDays(1).atStartOfDay(zoneId).toInstant();
 
         List<Object[]> data;
         if (currentUser.getRole() == RoleEnum.MANAGER || currentUser.getRole() == RoleEnum.ADMIN) {
@@ -168,15 +171,15 @@ public class DashboardService {
         } else {
             return new ArrayList<>();
         }
-        List<vn.viettel.khdn.billing_platform.model.dto.dashboard.ResConsultantDailyStatsDTO> result = new ArrayList<>();
+        List<ResConsultantDailyStatsDTO> result = new ArrayList<>();
 
         for (Object[] row : data) {
             Long consultantId = row[0] != null ? ((Number) row[0]).longValue() : null;
             String consultantName = (String) row[1];
-            java.time.Instant firstBillPrintedAt = (java.time.Instant) row[2];
+            Instant firstBillPrintedAt = (Instant) row[2];
             Long collectedCount = row[3] != null ? ((Number) row[3]).longValue() : 0L;
 
-            result.add(new vn.viettel.khdn.billing_platform.model.dto.dashboard.ResConsultantDailyStatsDTO(
+            result.add(new ResConsultantDailyStatsDTO(
                     consultantId,
                     consultantName,
                     firstBillPrintedAt,
@@ -189,7 +192,8 @@ public class DashboardService {
     public byte[] exportConsultantPerformance(Long periodId, User currentUser) {
         List<ResConsultantPerformanceDTO> records = getConsultantPerformance(periodId, currentUser);
 
-        try (Workbook workbook = new SXSSFWorkbook(100); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+        SXSSFWorkbook workbook = new SXSSFWorkbook(100);
+        try (workbook; ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             Sheet sheet = workbook.createSheet("Báo cáo tiến độ");
             if (sheet instanceof org.apache.poi.xssf.streaming.SXSSFSheet) {
                 ((org.apache.poi.xssf.streaming.SXSSFSheet) sheet).trackAllColumnsForAutoSizing();
@@ -219,8 +223,8 @@ public class DashboardService {
             // Row 1: Sub-headers
             Row row1 = sheet.createRow(1);
             String[] headers = {
-                    "S", "Tên nhân viên", 
-                    "Đã thu lũy kế", "Tổng cước phải", "Tồn đầu kỳ", "% Hoàn thành",
+                    "STT", "Tên nhân viên", 
+                    "Đã thu lũy kế", "Tổng cước phải thu", "Tồn đầu kỳ", "% Hoàn thành",
                     "Đã thu lũy kế", "Tổng KH phải thu", "Tồn đầu kỳ", "% Hoàn thành"
             };
             for (int i = 0; i < headers.length; i++) {
@@ -280,6 +284,8 @@ public class DashboardService {
             return out.toByteArray();
         } catch (Exception e) {
             throw new RuntimeException("Lỗi khi tạo file Excel: " + e.getMessage(), e);
+        } finally {
+            workbook.dispose();
         }
     }
 }

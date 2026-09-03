@@ -19,10 +19,10 @@ import vn.viettel.khdn.billing_platform.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@SuppressWarnings("null")
 public class RegionTargetService {
 
     private final RegionTargetRepository regionTargetRepository;
@@ -37,15 +37,16 @@ public class RegionTargetService {
                 .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy người dùng"));
     }
 
+    @Transactional(readOnly = true)
     public List<ResRegionTargetDTO> getRegionTargets(Long periodId, Long regionId) {
         // Có thể mở rộng phương thức query theo các filter, hiện tại tạm lấy tất cả và lọc
         List<RegionTarget> targets = regionTargetRepository.findAll();
         
         return targets.stream()
-                .filter(t -> periodId == null || t.getBillingPeriod().getId().equals(periodId))
-                .filter(t -> regionId == null || t.getRegion().getId().equals(regionId))
+                .filter(t -> periodId == null || (t.getBillingPeriod() != null && periodId.equals(t.getBillingPeriod().getId())))
+                .filter(t -> regionId == null || (t.getRegion() != null && regionId.equals(t.getRegion().getId())))
                 .map(ResRegionTargetDTO::new)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Transactional
@@ -57,13 +58,13 @@ public class RegionTargetService {
             throw new IllegalArgumentException("Không có quyền thiết lập chỉ tiêu khu vực");
         }
         
-        Long targetRegionId = null;
+        Long targetRegionId;
         if (currentUser.getRole() == RoleEnum.MANAGER) {
             if (currentUser.getRegion() == null) {
                 throw new IllegalArgumentException("Giám đốc chưa được gán khu vực");
             }
             targetRegionId = currentUser.getRegion().getId();
-        } else if (currentUser.getRole() == RoleEnum.ADMIN) {
+        } else { // Role ADMIN
             if (req.getRegionId() != null) {
                 targetRegionId = req.getRegionId();
             } else if (currentUser.getRegion() != null) {
@@ -71,8 +72,6 @@ public class RegionTargetService {
             } else {
                 throw new IllegalArgumentException("Vui lòng truyền regionId cho khu vực cần thiết lập chỉ tiêu");
             }
-        } else {
-            throw new IllegalArgumentException("Không có quyền thiết lập chỉ tiêu khu vực");
         }
 
         BillingPeriod period = billingPeriodRepository.findById(req.getBillingPeriodId())
