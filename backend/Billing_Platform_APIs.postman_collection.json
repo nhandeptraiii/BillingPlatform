@@ -1739,7 +1739,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/region-targets?periodId={{periodId}}",
+              "raw": "{{baseUrl}}/region-targets?month=6&year=2026",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -1748,8 +1748,12 @@
               ],
               "query": [
                 {
-                  "key": "periodId",
-                  "value": "{{periodId}}"
+                  "key": "month",
+                  "value": "6"
+                },
+                {
+                  "key": "year",
+                  "value": "2026"
                 }
               ]
             }
