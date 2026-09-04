@@ -1,4 +1,4 @@
-﻿package vn.viettel.khdn.billing_platform.repository;
+package vn.viettel.khdn.billing_platform.repository;
 
 import java.util.Collection;
 import java.util.List;
