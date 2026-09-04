@@ -32,6 +32,9 @@ public class RegionTarget {
     @Column(name = "target_revenue_percent")
     private Double targetRevenuePercent; // Ví dụ: 99.8 (tương ứng 99.8%)
 
+    @Column(name = "target_ftth_n1_percent")
+    private Double targetFtthN1Percent; // Ví dụ: 95.0
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "updated_by_id")
     private User updatedBy;

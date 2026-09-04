@@ -22,4 +22,8 @@ public class ReqRegionTargetDTO {
     @Min(value = 0, message = "Tỷ lệ phải từ 0 trở lên")
     @Max(value = 100, message = "Tỷ lệ không được vượt quá 100")
     private Double targetRevenuePercent;
+
+    @Min(value = 0, message = "Tỷ lệ phải từ 0 trở lên")
+    @Max(value = 100, message = "Tỷ lệ không được vượt quá 100")
+    private Double targetFtthN1Percent;
 }

@@ -18,6 +18,7 @@ public class ResDashboardOverviewDTO {
     private Double recordsProgressPercentage;
     private Double targetCustomerPercent;
     private Double targetRevenuePercent;
+    private Double targetFtthN1Percent;
     
     // Chỉ tiêu FTTH N1
     private Long ftthN1TotalRecords;

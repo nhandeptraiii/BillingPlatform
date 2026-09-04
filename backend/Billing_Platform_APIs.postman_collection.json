@@ -5,14 +5,38 @@
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    { "key": "baseUrl", "value": "http://localhost:8080" },
-    { "key": "token", "value": "" },
-    { "key": "managerToken", "value": "" },
-    { "key": "consultantToken", "value": "" },
-    { "key": "userId", "value": "" },
-    { "key": "regionId", "value": "" },
-    { "key": "periodId", "value": "" },
-    { "key": "recordId", "value": "" }
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "managerToken",
+      "value": ""
+    },
+    {
+      "key": "consultantToken",
+      "value": ""
+    },
+    {
+      "key": "userId",
+      "value": ""
+    },
+    {
+      "key": "regionId",
+      "value": ""
+    },
+    {
+      "key": "periodId",
+      "value": ""
+    },
+    {
+      "key": "recordId",
+      "value": ""
+    }
   ],
   "item": [
     {
@@ -40,12 +64,25 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"123456\"\n}"
             },
-            "url": { "raw": "{{baseUrl}}/login", "host": ["{{baseUrl}}"], "path": ["login"] }
+            "url": {
+              "raw": "{{baseUrl}}/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "login"
+              ]
+            }
           }
         },
         {
@@ -68,12 +105,25 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"username\": \"manager_test\",\n  \"password\": \"Test@12345\"\n}"
             },
-            "url": { "raw": "{{baseUrl}}/login", "host": ["{{baseUrl}}"], "path": ["login"] }
+            "url": {
+              "raw": "{{baseUrl}}/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "login"
+              ]
+            }
           }
         },
         {
@@ -94,16 +144,42 @@
           ],
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": { "raw": "{{baseUrl}}/account", "host": ["{{baseUrl}}"], "path": ["account"] }
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/account",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "account"
+              ]
+            }
           }
         },
         {
           "name": "Logout",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": { "raw": "{{baseUrl}}/logout", "host": ["{{baseUrl}}"], "path": ["logout"] }
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "logout"
+              ]
+            }
           }
         }
       ]
@@ -134,8 +210,21 @@
           ],
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": { "raw": "{{baseUrl}}/regions", "host": ["{{baseUrl}}"], "path": ["regions"] }
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/regions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "regions"
+              ]
+            }
           }
         },
         {
@@ -159,14 +248,28 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"Huyện Thạch Thất\"\n}"
             },
-            "url": { "raw": "{{baseUrl}}/regions", "host": ["{{baseUrl}}"], "path": ["regions"] }
+            "url": {
+              "raw": "{{baseUrl}}/regions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "regions"
+              ]
+            }
           }
         },
         {
@@ -174,14 +277,29 @@
           "request": {
             "method": "PUT",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"Huyện Thạch Thất (Updated)\"\n}"
             },
-            "url": { "raw": "{{baseUrl}}/regions/{{regionId}}", "host": ["{{baseUrl}}"], "path": ["regions", "{{regionId}}"] }
+            "url": {
+              "raw": "{{baseUrl}}/regions/{{regionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "regions",
+                "{{regionId}}"
+              ]
+            }
           }
         }
       ]
@@ -207,24 +325,61 @@
           ],
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": { "raw": "{{baseUrl}}/users/me", "host": ["{{baseUrl}}"], "path": ["users", "me"] }
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "me"
+              ]
+            }
           }
         },
         {
           "name": "GET Users (with filters)",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/users?page=0&size=10",
-              "host": ["{{baseUrl}}"],
-              "path": ["users"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ],
               "query": [
-                { "key": "page", "value": "0" },
-                { "key": "size", "value": "10" },
-                { "key": "keyword", "value": "", "disabled": true },
-                { "key": "role", "value": "CONSULTANT", "disabled": true }
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "10"
+                },
+                {
+                  "key": "keyword",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "role",
+                  "value": "CONSULTANT",
+                  "disabled": true
+                }
               ]
             }
           }
@@ -251,14 +406,28 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"username\": \"manager_test\",\n  \"fullName\": \"Nguyen Van Manager\",\n  \"phone\": \"0912345678\",\n  \"password\": \"Test@12345\",\n  \"role\": \"MANAGER\",\n  \"regionId\": {{regionId}}\n}"
             },
-            "url": { "raw": "{{baseUrl}}/users", "host": ["{{baseUrl}}"], "path": ["users"] }
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ]
+            }
           }
         },
         {
@@ -266,22 +435,50 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"username\": \"consultant01\",\n  \"fullName\": \"Tran Thi Consultant\",\n  \"phone\": \"0901234567\",\n  \"password\": \"Test@12345\",\n  \"role\": \"CONSULTANT\",\n  \"regionId\": {{regionId}}\n}"
             },
-            "url": { "raw": "{{baseUrl}}/users", "host": ["{{baseUrl}}"], "path": ["users"] }
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ]
+            }
           }
         },
         {
           "name": "GET User By ID",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": { "raw": "{{baseUrl}}/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["users", "{{userId}}"] }
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{userId}}"
+              ]
+            }
           }
         },
         {
@@ -289,26 +486,57 @@
           "request": {
             "method": "PUT",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"fullName\": \"Nguyen Van Manager (Updated)\",\n  \"phone\": \"0912345678\",\n  \"role\": \"MANAGER\",\n  \"regionId\": {{regionId}}\n}"
             },
-            "url": { "raw": "{{baseUrl}}/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["users", "{{userId}}"] }
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{userId}}"
+              ]
+            }
           }
         },
         {
           "name": "PATCH Update User Status",
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/users/{{userId}}/status?status=INACTIVE",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "{{userId}}", "status"],
-              "query": [{ "key": "status", "value": "INACTIVE" }]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{userId}}",
+                "status"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "INACTIVE"
+                }
+              ]
             }
           }
         },
@@ -317,14 +545,30 @@
           "request": {
             "method": "PUT",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"newPassword\": \"Test@12345\"\n}"
             },
-            "url": { "raw": "{{baseUrl}}/users/{{userId}}/reset-password", "host": ["{{baseUrl}}"], "path": ["users", "{{userId}}", "reset-password"] }
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}/reset-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{userId}}",
+                "reset-password"
+              ]
+            }
           }
         },
         {
@@ -332,36 +576,85 @@
           "request": {
             "method": "PUT",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"oldPassword\": \"123456\",\n  \"newPassword\": \"newpass123\"\n}"
             },
-            "url": { "raw": "{{baseUrl}}/users/me/password", "host": ["{{baseUrl}}"], "path": ["users", "me", "password"] }
+            "url": {
+              "raw": "{{baseUrl}}/users/me/password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "me",
+                "password"
+              ]
+            }
           }
         },
         {
           "name": "POST Import Consultants (MANAGER/ADMIN)",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{managerToken}}"
+              }
+            ],
             "body": {
               "mode": "formdata",
               "formdata": [
-                { "key": "file", "type": "file", "src": [], "description": "Chọn file mẫu nhân viên (.xlsx)" }
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": [],
+                  "description": "Chọn file mẫu nhân viên (.xlsx)"
+                }
               ]
             },
-            "url": { "raw": "{{baseUrl}}/users/import-consultants", "host": ["{{baseUrl}}"], "path": ["users", "import-consultants"] }
+            "url": {
+              "raw": "{{baseUrl}}/users/import-consultants",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "import-consultants"
+              ]
+            }
           }
         },
         {
           "name": "DELETE User",
           "request": {
             "method": "DELETE",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": { "raw": "{{baseUrl}}/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["users", "{{userId}}"] }
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{userId}}"
+              ]
+            }
           }
         }
       ]
@@ -388,14 +681,29 @@
           ],
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/billing-periods?page=0&size=10",
-              "host": ["{{baseUrl}}"],
-              "path": ["billing-periods"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "billing-periods"
+              ],
               "query": [
-                { "key": "page", "value": "0" },
-                { "key": "size", "value": "10" }
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "10"
+                }
               ]
             }
           }
@@ -404,38 +712,101 @@
           "name": "GET Billing Period By ID",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": { "raw": "{{baseUrl}}/billing-periods/{{periodId}}", "host": ["{{baseUrl}}"], "path": ["billing-periods", "{{periodId}}"] }
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/billing-periods/{{periodId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "billing-periods",
+                "{{periodId}}"
+              ]
+            }
           }
         },
         {
           "name": "POST Import Đầu Kỳ (MANAGER/ADMIN)",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{managerToken}}"
+              }
+            ],
             "body": {
               "mode": "formdata",
               "formdata": [
-                { "key": "file", "type": "file", "src": [], "description": "Chọn file Excel mẫu đầu kỳ (.xlsx)" }
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": [],
+                  "description": "Chọn file Excel mẫu đầu kỳ (.xlsx)"
+                }
               ]
             },
-            "url": { "raw": "{{baseUrl}}/billing-periods/import", "host": ["{{baseUrl}}"], "path": ["billing-periods", "import"] }
+            "url": {
+              "raw": "{{baseUrl}}/billing-periods/import",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "billing-periods",
+                "import"
+              ]
+            }
           }
         },
         {
           "name": "GET Download Import Template",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": { "raw": "{{baseUrl}}/billing-periods/import/template", "host": ["{{baseUrl}}"], "path": ["billing-periods", "import", "template"] }
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/billing-periods/import/template",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "billing-periods",
+                "import",
+                "template"
+              ]
+            }
           }
         },
         {
           "name": "PATCH Close Billing Period",
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": { "raw": "{{baseUrl}}/billing-periods/{{periodId}}/close", "host": ["{{baseUrl}}"], "path": ["billing-periods", "{{periodId}}", "close"] }
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/billing-periods/{{periodId}}/close",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "billing-periods",
+                "{{periodId}}",
+                "close"
+              ]
+            }
           }
         }
       ]
@@ -465,21 +836,64 @@
           ],
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{managerToken}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/records?page=0&size=20",
-              "host": ["{{baseUrl}}"],
-              "path": ["records"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "records"
+              ],
               "query": [
-                { "key": "page", "value": "0" },
-                { "key": "size", "value": "20" },
-                { "key": "month", "value": "6", "disabled": true },
-                { "key": "year", "value": "2026", "disabled": true },
-                { "key": "collectionStatus", "value": "CHUA_THU", "disabled": true },
-                { "key": "debtStatus", "value": "CHUA_GACH_NO", "disabled": true },
-                { "key": "assignedUserId", "value": "", "disabled": true },
-                { "key": "billPrintedDate", "value": "2026-06-01", "disabled": true },
-                { "key": "search", "value": "", "disabled": true }
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                },
+                {
+                  "key": "month",
+                  "value": "6",
+                  "disabled": true
+                },
+                {
+                  "key": "year",
+                  "value": "2026",
+                  "disabled": true
+                },
+                {
+                  "key": "collectionStatus",
+                  "value": "CHUA_THU",
+                  "disabled": true
+                },
+                {
+                  "key": "debtStatus",
+                  "value": "CHUA_GACH_NO",
+                  "disabled": true
+                },
+                {
+                  "key": "assignedUserId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "billPrintedDate",
+                  "value": "2026-06-01",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true
+                }
               ]
             }
           }
@@ -488,16 +902,37 @@
           "name": "GET Records (lọc theo tháng/năm)",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{managerToken}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/records?month=6&year=2026&page=0&size=20",
-              "host": ["{{baseUrl}}"],
-              "path": ["records"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "records"
+              ],
               "query": [
-                { "key": "month", "value": "6" },
-                { "key": "year", "value": "2026" },
-                { "key": "page", "value": "0" },
-                { "key": "size", "value": "20" }
+                {
+                  "key": "month",
+                  "value": "6"
+                },
+                {
+                  "key": "year",
+                  "value": "2026"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
               ]
             }
           }
@@ -506,15 +941,35 @@
           "name": "GET Export Records to Excel",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{managerToken}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/records/export?month=6&year=2026",
-              "host": ["{{baseUrl}}"],
-              "path": ["records", "export"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "records",
+                "export"
+              ],
               "query": [
-                { "key": "month", "value": "6" },
-                { "key": "year", "value": "2026" },
-                { "key": "collectionStatus", "value": "CHUA_THU", "disabled": true }
+                {
+                  "key": "month",
+                  "value": "6"
+                },
+                {
+                  "key": "year",
+                  "value": "2026"
+                },
+                {
+                  "key": "collectionStatus",
+                  "value": "CHUA_THU",
+                  "disabled": true
+                }
               ]
             }
           }
@@ -539,22 +994,50 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{managerToken}}" },
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{managerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"billingPeriodId\": {{periodId}},\n  \"customerCode\": \"KH001\",\n  \"customerName\": \"Nguyen Van A\",\n  \"subscriberNumber\": \"0987654321\",\n  \"phoneNumber\": \"0987654321\",\n  \"amountDue\": 150000,\n  \"fullAddress\": \"Thôn A, Xã B, Huyện Thạch Thất\",\n  \"serviceType\": \"Internet\",\n  \"assignedConsultantUsername\": \"consultant01\"\n}"
             },
-            "url": { "raw": "{{baseUrl}}/records", "host": ["{{baseUrl}}"], "path": ["records"] }
+            "url": {
+              "raw": "{{baseUrl}}/records",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "records"
+              ]
+            }
           }
         },
         {
           "name": "GET Record By ID",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": { "raw": "{{baseUrl}}/records/{{recordId}}", "host": ["{{baseUrl}}"], "path": ["records", "{{recordId}}"] }
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/records/{{recordId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "records",
+                "{{recordId}}"
+              ]
+            }
           }
         },
         {
@@ -576,14 +1059,30 @@
           "request": {
             "method": "PATCH",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"collectedAmount\": 150000\n}"
             },
-            "url": { "raw": "{{baseUrl}}/records/{{recordId}}/print-bill", "host": ["{{baseUrl}}"], "path": ["records", "{{recordId}}", "print-bill"] }
+            "url": {
+              "raw": "{{baseUrl}}/records/{{recordId}}/print-bill",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "records",
+                "{{recordId}}",
+                "print-bill"
+              ]
+            }
           }
         },
         {
@@ -604,28 +1103,73 @@
           ],
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": { "raw": "{{baseUrl}}/records/{{recordId}}/mark-debt", "host": ["{{baseUrl}}"], "path": ["records", "{{recordId}}", "mark-debt"] }
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/records/{{recordId}}/mark-debt",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "records",
+                "{{recordId}}",
+                "mark-debt"
+              ]
+            }
           }
         },
         {
           "name": "GET Bill Data (cho Mobile in bill)",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": { "raw": "{{baseUrl}}/records/{{recordId}}/bill-data", "host": ["{{baseUrl}}"], "path": ["records", "{{recordId}}", "bill-data"] }
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/records/{{recordId}}/bill-data",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "records",
+                "{{recordId}}",
+                "bill-data"
+              ]
+            }
           }
         },
         {
           "name": "PATCH Bulk Mark Debt (theo periodId)",
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{managerToken}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/records/bulk-mark-debt?periodId={{periodId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["records", "bulk-mark-debt"],
-              "query": [{ "key": "periodId", "value": "{{periodId}}" }]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "records",
+                "bulk-mark-debt"
+              ],
+              "query": [
+                {
+                  "key": "periodId",
+                  "value": "{{periodId}}"
+                }
+              ]
             }
           }
         },
@@ -633,16 +1177,40 @@
           "name": "PATCH Bulk Mark Debt (với bộ lọc)",
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{managerToken}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/records/bulk-mark-debt/filter?month=6&year=2026&collectionStatus=DA_THANH_TOAN",
-              "host": ["{{baseUrl}}"],
-              "path": ["records", "bulk-mark-debt", "filter"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "records",
+                "bulk-mark-debt",
+                "filter"
+              ],
               "query": [
-                { "key": "month", "value": "6" },
-                { "key": "year", "value": "2026" },
-                { "key": "collectionStatus", "value": "DA_THANH_TOAN" },
-                { "key": "debtStatus", "value": "CHUA_GACH_NO", "disabled": true }
+                {
+                  "key": "month",
+                  "value": "6"
+                },
+                {
+                  "key": "year",
+                  "value": "2026"
+                },
+                {
+                  "key": "collectionStatus",
+                  "value": "DA_THANH_TOAN"
+                },
+                {
+                  "key": "debtStatus",
+                  "value": "CHUA_GACH_NO",
+                  "disabled": true
+                }
               ]
             }
           }
@@ -651,15 +1219,36 @@
           "name": "PATCH Bulk Pay (với bộ lọc)",
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{managerToken}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/records/bulk-pay/filter?month=6&year=2026",
-              "host": ["{{baseUrl}}"],
-              "path": ["records", "bulk-pay", "filter"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "records",
+                "bulk-pay",
+                "filter"
+              ],
               "query": [
-                { "key": "month", "value": "6" },
-                { "key": "year", "value": "2026" },
-                { "key": "collectionStatus", "value": "CHUA_THU", "disabled": true }
+                {
+                  "key": "month",
+                  "value": "6"
+                },
+                {
+                  "key": "year",
+                  "value": "2026"
+                },
+                {
+                  "key": "collectionStatus",
+                  "value": "CHUA_THU",
+                  "disabled": true
+                }
               ]
             }
           }
@@ -668,21 +1257,46 @@
           "name": "POST Import Đối Chiếu Gạch Nợ (MANAGER/ADMIN)",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{managerToken}}"
+              }
+            ],
             "body": {
               "mode": "formdata",
               "formdata": [
-                { "key": "file", "type": "file", "src": [], "description": "Chọn file báo cáo Excel từ Viettel (.xlsx)" }
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": [],
+                  "description": "Chọn file báo cáo Excel từ Viettel (.xlsx)"
+                }
               ]
             },
             "url": {
               "raw": "{{baseUrl}}/records/import-reconciliation?month=6&year=2026",
-              "host": ["{{baseUrl}}"],
-              "path": ["records", "import-reconciliation"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "records",
+                "import-reconciliation"
+              ],
               "query": [
-                { "key": "month", "value": "6" },
-                { "key": "year", "value": "2026" },
-                { "key": "periodId", "value": "{{periodId}}", "disabled": true }
+                {
+                  "key": "month",
+                  "value": "6"
+                },
+                {
+                  "key": "year",
+                  "value": "2026"
+                },
+                {
+                  "key": "periodId",
+                  "value": "{{periodId}}",
+                  "disabled": true
+                }
               ]
             }
           }
@@ -691,23 +1305,57 @@
           "name": "GET Download Reconciliation Template",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}" }],
-            "url": { "raw": "{{baseUrl}}/records/import-reconciliation/template", "host": ["{{baseUrl}}"], "path": ["records", "import-reconciliation", "template"] }
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{managerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/records/import-reconciliation/template",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "records",
+                "import-reconciliation",
+                "template"
+              ]
+            }
           }
         },
         {
           "name": "GET Warnings (cảnh báo chưa gạch nợ)",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{managerToken}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/records/warnings?periodId={{periodId}}&page=0&size=20",
-              "host": ["{{baseUrl}}"],
-              "path": ["records", "warnings"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "records",
+                "warnings"
+              ],
               "query": [
-                { "key": "periodId", "value": "{{periodId}}" },
-                { "key": "page", "value": "0" },
-                { "key": "size", "value": "20" }
+                {
+                  "key": "periodId",
+                  "value": "{{periodId}}"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
               ]
             }
           }
@@ -722,20 +1370,47 @@
           "name": "GET Config (tự động lấy theo khu vực của user)",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}" }],
-            "url": { "raw": "{{baseUrl}}/store-config", "host": ["{{baseUrl}}"], "path": ["store-config"] }
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{managerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/store-config",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "store-config"
+              ]
+            }
           }
         },
         {
           "name": "GET Config theo regionId (ADMIN)",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/store-config?regionId={{regionId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["store-config"],
-              "query": [{ "key": "regionId", "value": "{{regionId}}" }]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "store-config"
+              ],
+              "query": [
+                {
+                  "key": "regionId",
+                  "value": "{{regionId}}"
+                }
+              ]
             }
           }
         },
@@ -744,14 +1419,28 @@
           "request": {
             "method": "PUT",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{managerToken}}" },
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{managerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"storeName\": \"Viettel Thạch Thất\",\n  \"address\": \"Thị trấn Thạch Thất, Huyện Thạch Thất, Hà Nội\",\n  \"hotline\": \"0987654321\"\n}"
             },
-            "url": { "raw": "{{baseUrl}}/store-config", "host": ["{{baseUrl}}"], "path": ["store-config"] }
+            "url": {
+              "raw": "{{baseUrl}}/store-config",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "store-config"
+              ]
+            }
           }
         },
         {
@@ -759,8 +1448,14 @@
           "request": {
             "method": "PUT",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -768,9 +1463,18 @@
             },
             "url": {
               "raw": "{{baseUrl}}/store-config?regionId={{regionId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["store-config"],
-              "query": [{ "key": "regionId", "value": "{{regionId}}" }]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "store-config"
+              ],
+              "query": [
+                {
+                  "key": "regionId",
+                  "value": "{{regionId}}"
+                }
+              ]
             }
           }
         }
@@ -784,22 +1488,52 @@
           "name": "GET Overview (tháng hiện tại)",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}" }],
-            "url": { "raw": "{{baseUrl}}/dashboard/overview", "host": ["{{baseUrl}}"], "path": ["dashboard", "overview"] }
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{managerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/dashboard/overview",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "dashboard",
+                "overview"
+              ]
+            }
           }
         },
         {
           "name": "GET Overview (theo tháng/năm cụ thể)",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{managerToken}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/dashboard/overview?month=6&year=2026",
-              "host": ["{{baseUrl}}"],
-              "path": ["dashboard", "overview"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "dashboard",
+                "overview"
+              ],
               "query": [
-                { "key": "month", "value": "6" },
-                { "key": "year", "value": "2026" }
+                {
+                  "key": "month",
+                  "value": "6"
+                },
+                {
+                  "key": "year",
+                  "value": "2026"
+                }
               ]
             }
           }
@@ -808,14 +1542,30 @@
           "name": "GET Consultant Performance (MANAGER/ADMIN)",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{managerToken}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/dashboard/consultants?month=6&year=2026",
-              "host": ["{{baseUrl}}"],
-              "path": ["dashboard", "consultants"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "dashboard",
+                "consultants"
+              ],
               "query": [
-                { "key": "month", "value": "6" },
-                { "key": "year", "value": "2026" }
+                {
+                  "key": "month",
+                  "value": "6"
+                },
+                {
+                  "key": "year",
+                  "value": "2026"
+                }
               ]
             }
           }
@@ -824,14 +1574,31 @@
           "name": "GET Export Consultant Performance (Excel)",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{managerToken}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/dashboard/consultants/export?month=6&year=2026",
-              "host": ["{{baseUrl}}"],
-              "path": ["dashboard", "consultants", "export"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "dashboard",
+                "consultants",
+                "export"
+              ],
               "query": [
-                { "key": "month", "value": "6" },
-                { "key": "year", "value": "2026" }
+                {
+                  "key": "month",
+                  "value": "6"
+                },
+                {
+                  "key": "year",
+                  "value": "2026"
+                }
               ]
             }
           }
@@ -840,16 +1607,38 @@
           "name": "GET Warnings Dashboard (MANAGER/ADMIN)",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{managerToken}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/dashboard/warnings?month=6&year=2026&page=0&size=20",
-              "host": ["{{baseUrl}}"],
-              "path": ["dashboard", "warnings"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "dashboard",
+                "warnings"
+              ],
               "query": [
-                { "key": "month", "value": "6" },
-                { "key": "year", "value": "2026" },
-                { "key": "page", "value": "0" },
-                { "key": "size", "value": "20" }
+                {
+                  "key": "month",
+                  "value": "6"
+                },
+                {
+                  "key": "year",
+                  "value": "2026"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
               ]
             }
           }
@@ -858,20 +1647,111 @@
           "name": "GET Daily Stats (hôm nay)",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}" }],
-            "url": { "raw": "{{baseUrl}}/dashboard/daily-stats", "host": ["{{baseUrl}}"], "path": ["dashboard", "daily-stats"] }
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{managerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/dashboard/daily-stats",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "dashboard",
+                "daily-stats"
+              ]
+            }
           }
         },
         {
           "name": "GET Daily Stats (ngày cụ thể)",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{managerToken}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/dashboard/daily-stats?date=2026-06-12",
-              "host": ["{{baseUrl}}"],
-              "path": ["dashboard", "daily-stats"],
-              "query": [{ "key": "date", "value": "2026-06-12" }]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "dashboard",
+                "daily-stats"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "2026-06-12"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Region Targets (Chỉ tiêu)",
+      "description": "Quản lý chỉ tiêu của khu vực. MANAGER cập nhật cho khu vực của mình.",
+      "item": [
+        {
+          "name": "POST Upsert Region Target",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{managerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"billingPeriodId\": {{periodId}},\n  \"targetCustomerPercent\": 95.5,\n  \"targetRevenuePercent\": 98.0,\n  \"targetFtthN1Percent\": 90.0\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/region-targets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "region-targets"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET Region Targets",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{managerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/region-targets?periodId={{periodId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "region-targets"
+              ],
+              "query": [
+                {
+                  "key": "periodId",
+                  "value": "{{periodId}}"
+                }
+              ]
             }
           }
         }

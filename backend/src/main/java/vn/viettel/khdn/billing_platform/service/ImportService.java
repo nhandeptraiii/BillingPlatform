@@ -54,9 +54,9 @@ public class ImportService {
     private final JdbcTemplate jdbcTemplate;
 
     public ImportService(BillingPeriodRepository billingPeriodRepository,
-                         CustomerBillingRecordRepository recordRepository,
-                         UserRepository userRepository,
-                         JdbcTemplate jdbcTemplate) {
+            CustomerBillingRecordRepository recordRepository,
+            UserRepository userRepository,
+            JdbcTemplate jdbcTemplate) {
         this.billingPeriodRepository = billingPeriodRepository;
         this.recordRepository = recordRepository;
         this.userRepository = userRepository;
@@ -64,11 +64,13 @@ public class ImportService {
     }
 
     private String normalizeSubscriberNumber(String raw) {
-        if (raw == null || raw.isBlank()) return "";
+        if (raw == null || raw.isBlank())
+            return "";
         return raw.trim();
     }
 
-    private record ReconciliationKey(String customerCode, String subscriberNumber) {}
+    private record ReconciliationKey(String customerCode, String subscriberNumber) {
+    }
 
     private static class ReconciliationGroup {
         private final int firstRowNumber;
@@ -108,7 +110,7 @@ public class ImportService {
         /**
          * Tính số tiền ghi nhận đã thu: Min(totalPaidAmount, amountDue).
          * - Nếu trả >= đầu kỳ → lấy đầu kỳ (không ghi nhận dư)
-         * - Nếu trả < đầu kỳ  → lấy số thực trả (partial payment)
+         * - Nếu trả < đầu kỳ → lấy số thực trả (partial payment)
          * Không phụ thuộc vào trạng thái gạch nợ.
          */
         private BigDecimal computeCollectedAmount(BigDecimal amountDue) {
@@ -124,16 +126,16 @@ public class ImportService {
 
     public byte[] generateStartOfPeriodTemplate() {
         try (Workbook workbook = new XSSFWorkbook();
-             java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream()) {
-            
+                java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream()) {
+
             Sheet sheet = workbook.createSheet("Import Dau Ky");
             Row headerRow = sheet.createRow(0);
             String[] headers = {
-                "STT", "Mã Hợp Đồng", "Tên Khách Hàng", "Số TB/Account", "SĐT Liên Hệ", 
-                "Địa Chỉ", "Tổng Cước (VNĐ)", "Hình Thức TT", "Username Nhân Viên", 
-                "Kỳ Thanh Toán", "Loại Dịch Vụ", "Nội Dung QC"
+                    "STT", "Mã Hợp Đồng", "Tên Khách Hàng", "Số TB/Account", "SĐT Liên Hệ",
+                    "Địa Chỉ", "Tổng Cước (VNĐ)", "Hình Thức TT", "Username Nhân Viên",
+                    "Kỳ Thanh Toán", "Hình Thức Quản Lý", "Nội Dung QC"
             };
-            
+
             // Header Style
             CellStyle headerStyle = workbook.createCellStyle();
             headerStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
@@ -173,21 +175,21 @@ public class ImportService {
 
     public byte[] generateReconciliationTemplate() {
         try (Workbook workbook = new XSSFWorkbook();
-             java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream()) {
-            
+                java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream()) {
+
             Sheet sheet = workbook.createSheet("Bao Cao Viettel");
-            
+
             // Viettel report has some title rows
             sheet.createRow(0).createCell(0).setCellValue("TỔNG CÔNG TY VIỄN THÔNG VIETTEL");
             sheet.createRow(1).createCell(0).setCellValue("BÁO CÁO ĐỐI CHIẾU THU CƯỚC");
-            
+
             // Actual headers at row 6 (index 6)
             Row headerRow = sheet.createRow(6);
             String[] headers = {
-                "STT", "Chi nhánh", "Ban cước", "Tổ thu", "Số HĐ", "Số TB", 
-                "Tiền trả", "Số lũy kế", "Còn nợ", "HT thu", "HT TT", "Item no", "Mã HĐ"
+                    "STT", "Chi nhánh", "Ban cước", "Tổ thu", "Số HĐ", "Số TB",
+                    "Tiền trả", "Số lũy kế", "Còn nợ", "HT thu", "HT TT", "Item no", "Mã HĐ"
             };
-            
+
             CellStyle headerStyle = workbook.createCellStyle();
             headerStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
             headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
@@ -206,8 +208,8 @@ public class ImportService {
             Row sampleRow = sheet.createRow(7);
             sampleRow.createCell(0).setCellValue(1);
             sampleRow.createCell(5).setCellValue("0901234567"); // Số TB (Cột F)
-            sampleRow.createCell(6).setCellValue(150000);       // Tiền trả
-            sampleRow.createCell(9).setCellValue("Gạch nợ");    // HT thu (Cột J)
+            sampleRow.createCell(6).setCellValue(150000); // Tiền trả
+            sampleRow.createCell(9).setCellValue("Gạch nợ"); // HT thu (Cột J)
 
             workbook.write(out);
             return out.toByteArray();
@@ -222,25 +224,25 @@ public class ImportService {
     /**
      * Cấu trúc file mau_import_dau_ky.xlsx (header dòng 1, data từ dòng 2):
      *
-     * Cột A (0): STT               — bỏ qua
-     * Cột B (1): Mã Hợp Đồng      — customerCode (*)
-     * Cột C (2): Tên Khách Hàng    — customerName (*)
-     * Cột D (3): Số TB/Account     — subscriberNumber (*)
-     * Cột E (4): SĐT Liên Hệ      — phoneNumber
-     * Cột F (5): Địa Chỉ           — fullAddress
-     * Cột G (6): Tổng Cước (VNĐ)   — amountDue (*)
-     * Cột H (7): Hình Thức TT      — bỏ qua (chỉ gợi ý)
+     * Cột A (0): STT — bỏ qua
+     * Cột B (1): Mã Hợp Đồng — customerCode (*)
+     * Cột C (2): Tên Khách Hàng — customerName (*)
+     * Cột D (3): Số TB/Account — subscriberNumber (*)
+     * Cột E (4): SĐT Liên Hệ — phoneNumber
+     * Cột F (5): Địa Chỉ — fullAddress
+     * Cột G (6): Tổng Cước (VNĐ) — amountDue (*)
+     * Cột H (7): Hình Thức TT — bỏ qua (chỉ gợi ý)
      * Cột I (8): Username Nhân Viên — assignedConsultant (*)
-     * Cột J (9): Kỳ Thanh Toán     — định dạng MM/YYYY, VD: 05/2026 (*)
-     * Cột K (10): Loại Dịch Vụ     — serviceType (*)
-     * Cột L (11): Nội Dung QC      — adsContent
+     * Cột J (9): Kỳ Thanh Toán — định dạng MM/YYYY, VD: 05/2026 (*)
+     * Cột K (10): Loại Dịch Vụ — serviceType (*)
+     * Cột L (11): Nội Dung QC — adsContent
      */
     @Transactional
     public ImportResultDTO importStartOfPeriod(MultipartFile file, User createdBy) {
         List<ImportResultDTO.ImportErrorRow> errors = new ArrayList<>();
         int successCount = 0;
         BigDecimal totalAmount = BigDecimal.ZERO;
-        
+
         final int BATCH_SIZE = 1000;
         Map<String, BillingPeriod> periodCache = new HashMap<>();
         Map<String, Optional<User>> userCache = new HashMap<>();
@@ -250,49 +252,51 @@ public class ImportService {
         // nên saveAll(1000) thực chất vẫn chạy 1000 INSERT riêng lẻ.
         // JDBC batch gom tất cả thành 1 round-trip → nhanh hơn ~5-10x.
         final String INSERT_SQL = """
-            INSERT INTO customer_billing_records
-                (billing_period_id, region_id, customer_code, customer_name,
-                 subscriber_number, phone_number, full_address, amount_due,
-                 service_type, ads_content, assigned_consultant_id,
-                 collection_status, debt_status, sync_warning)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """;
+                INSERT INTO customer_billing_records
+                    (billing_period_id, region_id, customer_code, customer_name,
+                     subscriber_number, phone_number, full_address, amount_due,
+                     service_type, ads_content, assigned_consultant_id,
+                     collection_status, debt_status, sync_warning)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """;
         // Buffer chứa dữ liệu đã validate, chờ flush bằng JDBC batch
         List<Object[]> batchParams = new ArrayList<>();
 
         try (InputStream is = file.getInputStream();
-             Workbook workbook = StreamingReader.builder().rowCacheSize(200).bufferSize(65536).open(is)) {
+                Workbook workbook = StreamingReader.builder().rowCacheSize(200).bufferSize(65536).open(is)) {
             Sheet sheet = workbook.getSheetAt(0);
-            
+
             for (Row row : sheet) {
-                if (row.getRowNum() == 0) continue; // Bỏ header
-                
+                if (row.getRowNum() == 0)
+                    continue; // Bỏ header
+
                 int currentRowNum = row.getRowNum() + 1; // 1-indexed for logging
 
                 try {
-                    String customerCode    = getCellString(row, 1);
-                    String customerName    = getCellString(row, 2);
-                    String subscriberNum   = getCellString(row, 3);
+                    String customerCode = getCellString(row, 1);
+                    String customerName = getCellString(row, 2);
+                    String subscriberNum = getCellString(row, 3);
 
                     // Bỏ qua dòng trống — check trực tiếp trường bắt buộc thay vì scan 15 cột
-                    if (customerCode.isBlank() && subscriberNum.isBlank()) continue;
+                    if (customerCode.isBlank() && subscriberNum.isBlank())
+                        continue;
 
-                    String phoneNumber     = getCellString(row, 4);
-                    String fullAddress     = getCellString(row, 5);
-                    BigDecimal amount      = getCellBigDecimal(row, 6);
+                    String phoneNumber = getCellString(row, 4);
+                    String fullAddress = getCellString(row, 5);
+                    BigDecimal amount = getCellBigDecimal(row, 6);
                     String consultantUsername = getCellString(row, 8);
                     String billingPeriodRaw = getCellString(row, 9);
-                    String serviceType      = getCellString(row, 10);
-                    String adsContent       = getCellString(row, 11);
+                    String serviceType = getCellString(row, 10);
+                    String adsContent = getCellString(row, 11);
 
                     if (customerCode.isBlank() || subscriberNum.isBlank()) {
                         errors.add(new ImportResultDTO.ImportErrorRow(currentRowNum,
-                            "Mã HĐ (cột B) và Số TB (cột D) không được để trống"));
+                                "Mã HĐ (cột B) và Số TB (cột D) không được để trống"));
                         continue;
                     }
                     if (billingPeriodRaw.isBlank()) {
                         errors.add(new ImportResultDTO.ImportErrorRow(currentRowNum,
-                            "Kỳ Thanh Toán (cột J) không được để trống, định dạng MM/YYYY"));
+                                "Kỳ Thanh Toán (cột J) không được để trống, định dạng MM/YYYY"));
                         continue;
                     }
 
@@ -300,10 +304,11 @@ public class ImportService {
                     try {
                         String[] parts = billingPeriodRaw.split("/");
                         month = Integer.parseInt(parts[0].trim());
-                        year  = Integer.parseInt(parts[1].trim());
+                        year = Integer.parseInt(parts[1].trim());
                     } catch (Exception e) {
                         errors.add(new ImportResultDTO.ImportErrorRow(currentRowNum,
-                            "Kỳ Thanh Toán '" + billingPeriodRaw + "' sai định dạng, yêu cầu MM/YYYY (VD: 05/2026)"));
+                                "Kỳ Thanh Toán '" + billingPeriodRaw
+                                        + "' sai định dạng, yêu cầu MM/YYYY (VD: 05/2026)"));
                         continue;
                     }
 
@@ -311,45 +316,47 @@ public class ImportService {
 
                     // Kiểm tra chặn import trước khi tạo/lấy BillingPeriod
                     if (!periodCache.containsKey(periodKey)) {
-                        java.util.Optional<BillingPeriod> existing = billingPeriodRepository.findByMonthAndYear(month, year);
+                        java.util.Optional<BillingPeriod> existing = billingPeriodRepository.findByMonthAndYear(month,
+                                year);
                         if (existing.isPresent() && createdBy.getRegion() != null) {
                             boolean hasData = recordRepository.existsByBillingPeriodIdAndRegionId(
                                     existing.get().getId(), createdBy.getRegion().getId());
                             if (hasData) {
                                 throw new IllegalStateException(
-                                    "Kỳ " + month + "/" + year + " đã có dữ liệu đầu kỳ cho khu vực của bạn. "
-                                    + "Vui lòng xóa kỳ này trước khi import lại.");
+                                        "Kỳ " + month + "/" + year + " đã có dữ liệu đầu kỳ cho khu vực của bạn. "
+                                                + "Vui lòng xóa kỳ này trước khi import lại.");
                             }
                         }
                     }
 
-                    BillingPeriod period = periodCache.computeIfAbsent(periodKey, key ->
-                        billingPeriodRepository.findByMonthAndYear(month, year)
-                            .orElseGet(() -> {
-                                BillingPeriod bp = new BillingPeriod();
-                                bp.setMonth(month);
-                                bp.setYear(year);
-                                bp.setCreatedBy(createdBy);
-                                return billingPeriodRepository.save(bp);
-                            }));
+                    BillingPeriod period = periodCache.computeIfAbsent(periodKey,
+                            key -> billingPeriodRepository.findByMonthAndYear(month, year)
+                                    .orElseGet(() -> {
+                                        BillingPeriod bp = new BillingPeriod();
+                                        bp.setMonth(month);
+                                        bp.setYear(year);
+                                        bp.setCreatedBy(createdBy);
+                                        return billingPeriodRepository.save(bp);
+                                    }));
 
                     Long consultantId = null;
                     if (!consultantUsername.isBlank()) {
                         User consultant = userCache
-                            .computeIfAbsent(consultantUsername, userRepository::findByUsername)
-                            .orElse(null);
+                                .computeIfAbsent(consultantUsername, userRepository::findByUsername)
+                                .orElse(null);
                         if (consultant == null) {
                             errors.add(new ImportResultDTO.ImportErrorRow(currentRowNum,
-                                "Không tìm thấy nhân viên với username: " + consultantUsername));
+                                    "Không tìm thấy nhân viên với username: " + consultantUsername));
                             continue;
                         }
                         // Kiểm tra tư vấn viên phải thuộc cùng cụm (region) với Manager đang import
                         boolean sameRegion = createdBy.getRegion() != null
-                            && consultant.getRegion() != null
-                            && createdBy.getRegion().getId().equals(consultant.getRegion().getId());
+                                && consultant.getRegion() != null
+                                && createdBy.getRegion().getId().equals(consultant.getRegion().getId());
                         if (!sameRegion) {
                             errors.add(new ImportResultDTO.ImportErrorRow(currentRowNum,
-                                "Nhân viên '" + consultantUsername + "' không thuộc cụm của bạn, không thể import"));
+                                    "Nhân viên '" + consultantUsername
+                                            + "' không thuộc cụm của bạn, không thể import"));
                             continue;
                         }
                         consultantId = consultant.getId();
@@ -358,19 +365,19 @@ public class ImportService {
                     BigDecimal amountDue = amount != null ? amount : BigDecimal.ZERO;
                     Long regionId = createdBy.getRegion() != null ? createdBy.getRegion().getId() : null;
 
-                    batchParams.add(new Object[]{
-                        period.getId(), regionId, customerCode, customerName,
-                        subscriberNum, phoneNumber, fullAddress, amountDue,
-                        serviceType.isBlank() ? null : serviceType,
-                        adsContent.isBlank() ? null : adsContent,
-                        consultantId,
-                        CollectionStatusEnum.CHUA_THU.name(),
-                        DebtStatusEnum.CHUA_GACH_NO.name(),
-                        SyncWarningEnum.NONE.name()
+                    batchParams.add(new Object[] {
+                            period.getId(), regionId, customerCode, customerName,
+                            subscriberNum, phoneNumber, fullAddress, amountDue,
+                            serviceType.isBlank() ? null : serviceType,
+                            adsContent.isBlank() ? null : adsContent,
+                            consultantId,
+                            CollectionStatusEnum.CHUA_THU.name(),
+                            DebtStatusEnum.CHUA_GACH_NO.name(),
+                            SyncWarningEnum.NONE.name()
                     });
                     totalAmount = totalAmount.add(amountDue);
                     successCount++;
-                    
+
                     if (batchParams.size() >= BATCH_SIZE) {
                         flushJdbcBatch(INSERT_SQL, batchParams);
                         batchParams.clear();
@@ -381,10 +388,10 @@ public class ImportService {
                     throw e;
                 } catch (Exception e) {
                     errors.add(new ImportResultDTO.ImportErrorRow(currentRowNum,
-                        "Lỗi xử lý dòng: " + e.getMessage()));
+                            "Lỗi xử lý dòng: " + e.getMessage()));
                 }
             }
-            
+
             if (!batchParams.isEmpty()) {
                 flushJdbcBatch(INSERT_SQL, batchParams);
             }
@@ -396,13 +403,12 @@ public class ImportService {
         }
 
         return new ImportResultDTO(
-            successCount + errors.size(),
-            successCount,
-            errors.size(),
-            0, 0,
-            totalAmount,
-            errors
-        );
+                successCount + errors.size(),
+                successCount,
+                errors.size(),
+                0, 0,
+                totalAmount,
+                errors);
     }
 
     /**
@@ -424,21 +430,23 @@ public class ImportService {
      * Cột B (1): Chi nhánh
      * Cột C (2): Ban cước
      * Cột D (3): Tổ thu
-     * Cột E (4): Số hợp đồng       — thường là "xxxxx" (không dùng)
-     * Cột F (5): Số TB              — số thuê bao
-     * Cột G (6): Tiền trả           — numeric
-     * Cột H (7): Số lũy kế          — numeric
-     * Cột I (8): Còn nợ             — numeric
-     * Cột J (9): HT thu             — "Gach no TPP" / "Kênh thương mại điện tử" / ...
+     * Cột E (4): Số hợp đồng — thường là "xxxxx" (không dùng)
+     * Cột F (5): Số TB — số thuê bao
+     * Cột G (6): Tiền trả — numeric
+     * Cột H (7): Số lũy kế — numeric
+     * Cột I (8): Còn nợ — numeric
+     * Cột J (9): HT thu — "Gach no TPP" / "Kênh thương mại điện tử" / ...
      * Cột K (10): HT TT
      * Cột L (11): Item no
-     * Cột M (12): Mã hợp đồng      — Mã KH Viettel (*) — dùng để match với customerCode
+     * Cột M (12): Mã hợp đồng — Mã KH Viettel (*) — dùng để match với customerCode
      *
      * CHIẾN LƯỢC XỬ LÝ (2-pass + chunked IN query):
-     *   Pass 1: Stream toàn bộ file → Map<MãHĐ, isGachedNo> (chỉ lưu String+Boolean, ~1MB)
-     *           + Map<MãHĐ, rowNumber> (để log lỗi)
-     *   Pass 2: Chia Mã HĐ thành batch CHUNK_SIZE → SELECT IN (batch) → xử lý → save → next
-     *           → Không N+1 (tránh chậm), không load all (tránh OOM)
+     * Pass 1: Stream toàn bộ file → Map<MãHĐ, isGachedNo> (chỉ lưu String+Boolean,
+     * ~1MB)
+     * + Map<MãHĐ, rowNumber> (để log lỗi)
+     * Pass 2: Chia Mã HĐ thành batch CHUNK_SIZE → SELECT IN (batch) → xử lý → save
+     * → next
+     * → Không N+1 (tránh chậm), không load all (tránh OOM)
      */
     @Transactional
     public ImportResultDTO importReconciliation(MultipartFile file, Long periodId, User currentUser) {
@@ -449,10 +457,10 @@ public class ImportService {
     public ImportResultDTO importReconciliation(MultipartFile file, Long periodId, User currentUser, boolean dryRun) {
         List<ImportResultDTO.ImportErrorRow> errors = new ArrayList<>();
         int autoUpdatedCount = 0;
-        int warningCount     = 0;
+        int warningCount = 0;
 
         billingPeriodRepository.findById(periodId)
-            .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy kỳ thanh toán ID: " + periodId));
+                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy kỳ thanh toán ID: " + periodId));
 
         // ── PASS 1: Đọc toàn bộ file, gom theo Mã HĐ + Số TB ──────────────────
         // Một nhóm được coi là đã gạch nợ khi có tiền trả và không còn nợ.
@@ -462,17 +470,19 @@ public class ImportService {
         int totalInputRows = 0;
 
         try (InputStream is = file.getInputStream();
-             Workbook workbook = StreamingReader.builder()
-                .rowCacheSize(200)
-                .bufferSize(65536)
-                .open(is)) {
+                Workbook workbook = StreamingReader.builder()
+                        .rowCacheSize(200)
+                        .bufferSize(65536)
+                        .open(is)) {
             Sheet sheet = workbook.getSheetAt(0);
 
             for (Row row : sheet) {
-                if (row == null) continue;
+                if (row == null)
+                    continue;
 
                 // Tìm header: dòng nào có cột A = "STT" (kiểm tra bằng getCellString
-                // để tránh phụ thuộc vào cell type — StreamingReader trả về STRING cho shared string)
+                // để tránh phụ thuộc vào cell type — StreamingReader trả về STRING cho shared
+                // string)
                 if (!foundHeader) {
                     String firstCell = getCellString(row, 0).trim();
                     if (firstCell.equalsIgnoreCase("STT")) {
@@ -482,20 +492,25 @@ public class ImportService {
                 }
 
                 // Lấy Mã hợp đồng (cột M, index 12) — đây là key duy nhất cần thiết
-                // Không dùng isRowEmptyForReconciliation vì nó check cột A (STT) theo cell type,
+                // Không dùng isRowEmptyForReconciliation vì nó check cột A (STT) theo cell
+                // type,
                 // dễ bị sai với StreamingReader khi STT là shared string (type='s')
                 String contractCode = getCellString(row, 12).trim();
-                if (contractCode.isBlank()) continue; // Dòng không có Mã HĐ → bỏ qua
+                if (contractCode.isBlank())
+                    continue; // Dòng không có Mã HĐ → bỏ qua
 
                 String normalizedCode = normalizeContractCode(contractCode);
-                if (normalizedCode.isBlank()) continue;
+                if (normalizedCode.isBlank())
+                    continue;
 
                 String subscriberNumber = normalizeSubscriberNumber(getCellString(row, 5));
-                if (subscriberNumber.isBlank()) continue;
+                if (subscriberNumber.isBlank())
+                    continue;
 
                 totalInputRows++;
                 ReconciliationKey key = new ReconciliationKey(normalizedCode, subscriberNumber);
-                ReconciliationGroup group = groups.computeIfAbsent(key, k -> new ReconciliationGroup(row.getRowNum() + 1));
+                ReconciliationGroup group = groups.computeIfAbsent(key,
+                        k -> new ReconciliationGroup(row.getRowNum() + 1));
                 group.addRow(getCellBigDecimal(row, 6), getCellString(row, 8), getCellBigDecimal(row, 8));
             }
         } catch (Exception e) {
@@ -515,9 +530,9 @@ public class ImportService {
         boolean isManager = currentUser.getRole() == RoleEnum.MANAGER;
 
         List<String> allCodes = groups.keySet().stream()
-            .map(ReconciliationKey::customerCode)
-            .distinct()
-            .toList();
+                .map(ReconciliationKey::customerCode)
+                .distinct()
+                .toList();
         int failedRowCount = 0;
 
         for (int i = 0; i < allCodes.size(); i += CHUNK_SIZE) {
@@ -525,22 +540,23 @@ public class ImportService {
             Set<String> chunkCodes = new HashSet<>(chunk);
 
             // 1 câu SELECT IN cho cả batch → không N+1, không OOM
-            List<CustomerBillingRecord> dbRecords =
-                recordRepository.findAllByCustomerCodeInAndBillingPeriodId(chunk, periodId);
+            List<CustomerBillingRecord> dbRecords = recordRepository.findAllByCustomerCodeInAndBillingPeriodId(chunk,
+                    periodId);
 
             // Group DB records theo cùng key với file RP2.
             Map<ReconciliationKey, List<CustomerBillingRecord>> byKey = new HashMap<>();
             for (CustomerBillingRecord r : dbRecords) {
                 ReconciliationKey key = new ReconciliationKey(
-                    normalizeContractCode(r.getCustomerCode()),
-                    normalizeSubscriberNumber(r.getSubscriberNumber()));
+                        normalizeContractCode(r.getCustomerCode()),
+                        normalizeSubscriberNumber(r.getSubscriberNumber()));
                 byKey.computeIfAbsent(key, k -> new ArrayList<>()).add(r);
             }
 
             // Xử lý từng cặp Mã HĐ + Số TB trong chunk.
             for (Map.Entry<ReconciliationKey, ReconciliationGroup> entry : groups.entrySet()) {
                 ReconciliationKey key = entry.getKey();
-                if (!chunkCodes.contains(key.customerCode())) continue;
+                if (!chunkCodes.contains(key.customerCode()))
+                    continue;
 
                 ReconciliationGroup group = entry.getValue();
                 int rowNum = group.firstRowNumber;
@@ -548,13 +564,14 @@ public class ImportService {
 
                 if (records.isEmpty()) {
                     errors.add(new ImportResultDTO.ImportErrorRow(rowNum,
-                        "Không tìm thấy KH có Mã hợp đồng '" + key.customerCode() +
-                        "' và Số TB '" + key.subscriberNumber() + "' trong kỳ."));
+                            "Không tìm thấy KH có Mã hợp đồng '" + key.customerCode() +
+                                    "' và Số TB '" + key.subscriberNumber() + "' trong kỳ."));
                     failedRowCount += group.rowCount;
                     continue;
                 }
 
-                // Lọc ra các record mà user hiện tại có quyền cập nhật (nếu là MANAGER thì chỉ record thuộc cụm mình)
+                // Lọc ra các record mà user hiện tại có quyền cập nhật (nếu là MANAGER thì chỉ
+                // record thuộc cụm mình)
                 List<CustomerBillingRecord> allowedRecords = new ArrayList<>();
                 for (CustomerBillingRecord r : records) {
                     if (isManager && currentUserRegionId != null) {
@@ -568,8 +585,8 @@ public class ImportService {
 
                 if (allowedRecords.isEmpty()) {
                     errors.add(new ImportResultDTO.ImportErrorRow(rowNum,
-                        "KH có Mã hợp đồng '" + key.customerCode() + "' và Số TB '" +
-                        key.subscriberNumber() + "' thuộc cụm khác, bạn không có quyền cập nhật."));
+                            "KH có Mã hợp đồng '" + key.customerCode() + "' và Số TB '" +
+                                    key.subscriberNumber() + "' thuộc cụm khác, bạn không có quyền cập nhật."));
                     failedRowCount += group.rowCount;
                     continue;
                 }
@@ -609,7 +626,8 @@ public class ImportService {
                                 record.setDebtMarkedAt(null);
                                 record.setCollectedAmount(newCollectedAmount);
                                 record.setSyncWarning(SyncWarningEnum.INCONSISTENT);
-                                record.setSyncWarningNote("Báo cáo Viettel còn nợ hoặc tổng tiền trả chưa đủ tổng cước, đã hạ trạng thái gạch nợ.");
+                                record.setSyncWarningNote(
+                                        "Báo cáo Viettel còn nợ hoặc tổng tiền trả chưa đủ tổng cước, đã hạ trạng thái gạch nợ.");
                                 updated = true;
                             }
                         } else {
@@ -622,7 +640,8 @@ public class ImportService {
                                 warningCount++;
                                 if (!dryRun) {
                                     record.setSyncWarning(SyncWarningEnum.COLLECTED_NOT_MARKED);
-                                    record.setSyncWarningNote("Đã thu tiền và in bill nhưng chưa gạch nợ trên hệ thống Viettel.");
+                                    record.setSyncWarningNote(
+                                            "Đã thu tiền và in bill nhưng chưa gạch nợ trên hệ thống Viettel.");
                                 }
                             }
                         }
@@ -646,7 +665,7 @@ public class ImportService {
         }
 
         return new ImportResultDTO(totalInputRows, totalInputRows - failedRowCount, failedRowCount,
-                                   autoUpdatedCount, warningCount, null, errors);
+                autoUpdatedCount, warningCount, null, errors);
     }
 
     /**
@@ -655,9 +674,11 @@ public class ImportService {
      * Hoặc đã là chuỗi nguyên: "644976020" → "644976020"
      */
     private String normalizeContractCode(String raw) {
-        if (raw == null || raw.isBlank()) return "";
+        if (raw == null || raw.isBlank())
+            return "";
         try {
-            // Thử parse dạng số (hỗ trợ scientific notation) bằng BigDecimal để bảo toàn độ chính xác
+            // Thử parse dạng số (hỗ trợ scientific notation) bằng BigDecimal để bảo toàn độ
+            // chính xác
             java.math.BigDecimal bd = new java.math.BigDecimal(raw.trim());
             return bd.toBigInteger().toString();
         } catch (Exception e) {
@@ -671,50 +692,63 @@ public class ImportService {
     // =========================================================================
 
     private boolean isRowEmpty(Row row) {
-        for (int c = 0; c < 15; c++) { 
+        for (int c = 0; c < 15; c++) {
             Cell cell = row.getCell(c);
-            if (cell == null || cell.getCellType() == CellType.BLANK) continue;
+            if (cell == null || cell.getCellType() == CellType.BLANK)
+                continue;
             // NUMERIC cell không có getStringCellValue() — kiểm tra theo type
             switch (cell.getCellType()) {
-                case NUMERIC -> { return false; }
-                case BOOLEAN -> { return false; }
+                case NUMERIC -> {
+                    return false;
+                }
+                case BOOLEAN -> {
+                    return false;
+                }
                 case STRING -> {
                     String val = cell.getStringCellValue();
-                    if (val != null && !val.trim().isEmpty()) return false;
+                    if (val != null && !val.trim().isEmpty())
+                        return false;
                 }
-                default -> { /* FORMULA, ERROR, BLANK — bỏ qua */ }
+                default -> {
+                    /* FORMULA, ERROR, BLANK — bỏ qua */ }
             }
         }
         return true;
     }
 
     // isRowEmptyForReconciliation đã bị loại bỏ:
-    // Phương pháp check cột A (STT) theo cell type không đáng tin cậy với StreamingReader
+    // Phương pháp check cột A (STT) theo cell type không đáng tin cậy với
+    // StreamingReader
     // vì STT trong file Viettel là shared string (type='s'), dễ bị trả về rỗng.
     // Thay bằng: check trực tiếp cột M (Mã HĐ) trong vòng lặp pass 1.
 
     private String getCellString(Row row, int col) {
         Cell cell = row.getCell(col);
-        if (cell == null) return "";
+        if (cell == null)
+            return "";
         return switch (cell.getCellType()) {
-            case STRING  -> cell.getStringCellValue().trim();
+            case STRING -> cell.getStringCellValue().trim();
             case NUMERIC -> {
                 double v = cell.getNumericCellValue();
                 yield v == Math.floor(v) ? String.valueOf((long) v) : String.valueOf(v);
             }
             case BOOLEAN -> String.valueOf(cell.getBooleanCellValue());
-            default      -> "";
+            default -> "";
         };
     }
 
     private BigDecimal getCellBigDecimal(Row row, int col) {
         Cell cell = row.getCell(col);
-        if (cell == null) return BigDecimal.ZERO;
+        if (cell == null)
+            return BigDecimal.ZERO;
         return switch (cell.getCellType()) {
             case NUMERIC -> BigDecimal.valueOf(cell.getNumericCellValue());
-            case STRING  -> {
-                try { yield new BigDecimal(cell.getStringCellValue().replaceAll("[^\\d.-]", "").trim()); }
-                catch (Exception e) { yield BigDecimal.ZERO; }
+            case STRING -> {
+                try {
+                    yield new BigDecimal(cell.getStringCellValue().replaceAll("[^\\d.-]", "").trim());
+                } catch (Exception e) {
+                    yield BigDecimal.ZERO;
+                }
             }
             default -> BigDecimal.ZERO;
         };

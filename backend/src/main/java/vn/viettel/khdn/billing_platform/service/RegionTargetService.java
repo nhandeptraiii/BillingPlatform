@@ -93,6 +93,7 @@ public class RegionTargetService {
         
         target.setTargetCustomerPercent(req.getTargetCustomerPercent());
         target.setTargetRevenuePercent(req.getTargetRevenuePercent());
+        target.setTargetFtthN1Percent(req.getTargetFtthN1Percent());
         target.setUpdatedBy(currentUser);
         
         target = regionTargetRepository.save(target);

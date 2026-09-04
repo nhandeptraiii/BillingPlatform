@@ -99,6 +99,7 @@ public class DashboardService {
 
         Double targetCustomerPercent = null;
         Double targetRevenuePercent = null;
+        Double targetFtthN1Percent = null;
 
         Long regionIdForTarget = currentUser.getRole() == RoleEnum.ADMIN ? null
                 : (currentUser.getRegion() != null ? currentUser.getRegion().getId() : null);
@@ -108,6 +109,7 @@ public class DashboardService {
             if (optTarget.isPresent()) {
                 targetCustomerPercent = optTarget.get().getTargetCustomerPercent();
                 targetRevenuePercent = optTarget.get().getTargetRevenuePercent();
+                targetFtthN1Percent = optTarget.get().getTargetFtthN1Percent();
             }
         }
 
@@ -134,6 +136,7 @@ public class DashboardService {
                 recordsProgressPercentage,
                 targetCustomerPercent,
                 targetRevenuePercent,
+                targetFtthN1Percent,
                 ftthN1TotalRecords,
                 ftthN1ExpectedAmount,
                 ftthN1CollectedRecords,

@@ -14,6 +14,7 @@ public class ResRegionTargetDTO {
     private Long billingPeriodId;
     private Double targetCustomerPercent;
     private Double targetRevenuePercent;
+    private Double targetFtthN1Percent;
 
     public ResRegionTargetDTO(RegionTarget target) {
         this.id = target.getId();
@@ -21,5 +22,6 @@ public class ResRegionTargetDTO {
         this.billingPeriodId = target.getBillingPeriod() != null ? target.getBillingPeriod().getId() : null;
         this.targetCustomerPercent = target.getTargetCustomerPercent();
         this.targetRevenuePercent = target.getTargetRevenuePercent();
+        this.targetFtthN1Percent = target.getTargetFtthN1Percent();
     }
 }
