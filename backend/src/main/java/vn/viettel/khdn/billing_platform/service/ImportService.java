@@ -2,6 +2,8 @@ package vn.viettel.khdn.billing_platform.service;
 
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.sql.PreparedStatement;
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -23,6 +25,7 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -48,13 +51,16 @@ public class ImportService {
     private final BillingPeriodRepository billingPeriodRepository;
     private final CustomerBillingRecordRepository recordRepository;
     private final UserRepository userRepository;
+    private final JdbcTemplate jdbcTemplate;
 
     public ImportService(BillingPeriodRepository billingPeriodRepository,
                          CustomerBillingRecordRepository recordRepository,
-                         UserRepository userRepository) {
+                         UserRepository userRepository,
+                         JdbcTemplate jdbcTemplate) {
         this.billingPeriodRepository = billingPeriodRepository;
         this.recordRepository = recordRepository;
         this.userRepository = userRepository;
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     private String normalizeSubscriberNumber(String raw) {
@@ -123,9 +129,9 @@ public class ImportService {
             Sheet sheet = workbook.createSheet("Import Dau Ky");
             Row headerRow = sheet.createRow(0);
             String[] headers = {
-                "STT", "Mã Khách Hàng", "Tên Khách Hàng", "Số TB/Account", "SĐT Liên Hệ", 
+                "STT", "Mã Hợp Đồng", "Tên Khách Hàng", "Số TB/Account", "SĐT Liên Hệ", 
                 "Địa Chỉ", "Tổng Cước (VNĐ)", "Hình Thức TT", "Username Nhân Viên", 
-                "Username Quản Lý", "Kỳ Thanh Toán", "Loại Dịch Vụ", "Nội Dung QC"
+                "Kỳ Thanh Toán", "Loại Dịch Vụ", "Nội Dung QC"
             };
             
             // Header Style
@@ -146,18 +152,17 @@ public class ImportService {
             // Sample Row
             Row sampleRow = sheet.createRow(1);
             sampleRow.createCell(0).setCellValue(1);
-            sampleRow.createCell(1).setCellValue("KH001");
+            sampleRow.createCell(1).setCellValue("332010102");
             sampleRow.createCell(2).setCellValue("Nguyen Van A");
-            sampleRow.createCell(3).setCellValue("0901234567");
+            sampleRow.createCell(3).setCellValue("c710_gftth_hoatv7");
             sampleRow.createCell(4).setCellValue("0901234567");
             sampleRow.createCell(5).setCellValue("Q1, HCM");
             sampleRow.createCell(6).setCellValue(150000);
             sampleRow.createCell(7).setCellValue("Tien mat");
             sampleRow.createCell(8).setCellValue("nhanvien01");
-            sampleRow.createCell(9).setCellValue("quanly01");
-            sampleRow.createCell(10).setCellValue("05/2026");
-            sampleRow.createCell(11).setCellValue("Internet");
-            sampleRow.createCell(12).setCellValue("Mừng ngày Giải Phóng giảm giá 20%");
+            sampleRow.createCell(9).setCellValue("10/2026");
+            sampleRow.createCell(10).setCellValue("Internet");
+            sampleRow.createCell(11).setCellValue("Mừng ngày Giải Phóng giảm giá 20%");
 
             workbook.write(out);
             return out.toByteArray();
@@ -218,18 +223,17 @@ public class ImportService {
      * Cấu trúc file mau_import_dau_ky.xlsx (header dòng 1, data từ dòng 2):
      *
      * Cột A (0): STT               — bỏ qua
-     * Cột B (1): Mã Khách Hàng     — customerCode (*)
+     * Cột B (1): Mã Hợp Đồng      — customerCode (*)
      * Cột C (2): Tên Khách Hàng    — customerName (*)
-     * Cột D (3): Số TB/Account      — subscriberNumber (*)
+     * Cột D (3): Số TB/Account     — subscriberNumber (*)
      * Cột E (4): SĐT Liên Hệ      — phoneNumber
      * Cột F (5): Địa Chỉ           — fullAddress
      * Cột G (6): Tổng Cước (VNĐ)   — amountDue (*)
      * Cột H (7): Hình Thức TT      — bỏ qua (chỉ gợi ý)
      * Cột I (8): Username Nhân Viên — assignedConsultant (*)
-     * Cột J (9): Username Quản Lý  — bỏ qua
-     * Cột K (10): Kỳ Thanh Toán    — định dạng MM/YYYY, VD: 05/2026 (*)
-     * Cột L (11): Loại Dịch Vụ     — serviceType (*)
-     * Cột M (12): Nội Dung QC      — adsContent
+     * Cột J (9): Kỳ Thanh Toán     — định dạng MM/YYYY, VD: 05/2026 (*)
+     * Cột K (10): Loại Dịch Vụ     — serviceType (*)
+     * Cột L (11): Nội Dung QC      — adsContent
      */
     @Transactional
     public ImportResultDTO importStartOfPeriod(MultipartFile file, User createdBy) {
@@ -237,11 +241,24 @@ public class ImportService {
         int successCount = 0;
         BigDecimal totalAmount = BigDecimal.ZERO;
         
-        List<CustomerBillingRecord> batchRecords = new ArrayList<>();
-        int BATCH_SIZE = 500;
+        final int BATCH_SIZE = 1000;
         Map<String, BillingPeriod> periodCache = new HashMap<>();
         Map<String, Optional<User>> userCache = new HashMap<>();
-        Set<User> consultantsToUpdate = new HashSet<>();
+
+        // Chuẩn bị batch JDBC insert — bỏ qua Hibernate IDENTITY bottleneck
+        // MySQL IDENTITY strategy buộc Hibernate flush từng record để lấy ID,
+        // nên saveAll(1000) thực chất vẫn chạy 1000 INSERT riêng lẻ.
+        // JDBC batch gom tất cả thành 1 round-trip → nhanh hơn ~5-10x.
+        final String INSERT_SQL = """
+            INSERT INTO customer_billing_records
+                (billing_period_id, region_id, customer_code, customer_name,
+                 subscriber_number, phone_number, full_address, amount_due,
+                 service_type, ads_content, assigned_consultant_id,
+                 collection_status, debt_status, sync_warning)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """;
+        // Buffer chứa dữ liệu đã validate, chờ flush bằng JDBC batch
+        List<Object[]> batchParams = new ArrayList<>();
 
         try (InputStream is = file.getInputStream();
              Workbook workbook = StreamingReader.builder().rowCacheSize(200).bufferSize(65536).open(is)) {
@@ -249,7 +266,6 @@ public class ImportService {
             
             for (Row row : sheet) {
                 if (row.getRowNum() == 0) continue; // Bỏ header
-                if (isRowEmpty(row)) continue;
                 
                 int currentRowNum = row.getRowNum() + 1; // 1-indexed for logging
 
@@ -257,22 +273,26 @@ public class ImportService {
                     String customerCode    = getCellString(row, 1);
                     String customerName    = getCellString(row, 2);
                     String subscriberNum   = getCellString(row, 3);
+
+                    // Bỏ qua dòng trống — check trực tiếp trường bắt buộc thay vì scan 15 cột
+                    if (customerCode.isBlank() && subscriberNum.isBlank()) continue;
+
                     String phoneNumber     = getCellString(row, 4);
                     String fullAddress     = getCellString(row, 5);
                     BigDecimal amount      = getCellBigDecimal(row, 6);
                     String consultantUsername = getCellString(row, 8);
-                    String billingPeriodRaw = getCellString(row, 10);
-                    String serviceType      = getCellString(row, 11);
-                    String adsContent       = getCellString(row, 12);
+                    String billingPeriodRaw = getCellString(row, 9);
+                    String serviceType      = getCellString(row, 10);
+                    String adsContent       = getCellString(row, 11);
 
                     if (customerCode.isBlank() || subscriberNum.isBlank()) {
                         errors.add(new ImportResultDTO.ImportErrorRow(currentRowNum,
-                            "Mã KH (cột B) và Số TB (cột D) không được để trống"));
+                            "Mã HĐ (cột B) và Số TB (cột D) không được để trống"));
                         continue;
                     }
                     if (billingPeriodRaw.isBlank()) {
                         errors.add(new ImportResultDTO.ImportErrorRow(currentRowNum,
-                            "Kỳ Thanh Toán (cột K) không được để trống, định dạng MM/YYYY"));
+                            "Kỳ Thanh Toán (cột J) không được để trống, định dạng MM/YYYY"));
                         continue;
                     }
 
@@ -313,9 +333,9 @@ public class ImportService {
                                 return billingPeriodRepository.save(bp);
                             }));
 
-                    User consultant = null;
+                    Long consultantId = null;
                     if (!consultantUsername.isBlank()) {
-                        consultant = userCache
+                        User consultant = userCache
                             .computeIfAbsent(consultantUsername, userRepository::findByUsername)
                             .orElse(null);
                         if (consultant == null) {
@@ -332,44 +352,28 @@ public class ImportService {
                                 "Nhân viên '" + consultantUsername + "' không thuộc cụm của bạn, không thể import"));
                             continue;
                         }
+                        consultantId = consultant.getId();
                     }
 
-                    String managerUsername = getCellString(row, 9);
-                    if (consultant != null && !managerUsername.isBlank()) {
-                        User manager = userCache
-                            .computeIfAbsent(managerUsername, userRepository::findByUsername)
-                            .orElse(null);
-                        if (manager != null) {
-                            if (consultant.getManager() == null || !consultant.getManager().getId().equals(manager.getId())) {
-                                consultant.setManager(manager);
-                                consultantsToUpdate.add(consultant);
-                            }
-                        }
-                    }
+                    BigDecimal amountDue = amount != null ? amount : BigDecimal.ZERO;
+                    Long regionId = createdBy.getRegion() != null ? createdBy.getRegion().getId() : null;
 
-                    CustomerBillingRecord record = new CustomerBillingRecord();
-                    record.setBillingPeriod(period);
-                    record.setCustomerCode(customerCode);
-                    record.setCustomerName(customerName);
-                    record.setSubscriberNumber(subscriberNum);
-                    record.setPhoneNumber(phoneNumber);
-                    record.setFullAddress(fullAddress);
-                    record.setAmountDue(amount != null ? amount : BigDecimal.ZERO);
-                    record.setServiceType(serviceType.isBlank() ? null : serviceType);
-                    record.setAdsContent(adsContent.isBlank() ? null : adsContent);
-                    record.setAssignedConsultant(consultant);
-                    record.setRegion(createdBy.getRegion());
-                    record.setCollectionStatus(CollectionStatusEnum.CHUA_THU);
-                    record.setDebtStatus(DebtStatusEnum.CHUA_GACH_NO);
-                    record.setSyncWarning(SyncWarningEnum.NONE);
-                    
-                    batchRecords.add(record);
-                    totalAmount = totalAmount.add(amount != null ? amount : BigDecimal.ZERO);
+                    batchParams.add(new Object[]{
+                        period.getId(), regionId, customerCode, customerName,
+                        subscriberNum, phoneNumber, fullAddress, amountDue,
+                        serviceType.isBlank() ? null : serviceType,
+                        adsContent.isBlank() ? null : adsContent,
+                        consultantId,
+                        CollectionStatusEnum.CHUA_THU.name(),
+                        DebtStatusEnum.CHUA_GACH_NO.name(),
+                        SyncWarningEnum.NONE.name()
+                    });
+                    totalAmount = totalAmount.add(amountDue);
                     successCount++;
                     
-                    if (batchRecords.size() >= BATCH_SIZE) {
-                        recordRepository.saveAll(batchRecords);
-                        batchRecords.clear();
+                    if (batchParams.size() >= BATCH_SIZE) {
+                        flushJdbcBatch(INSERT_SQL, batchParams);
+                        batchParams.clear();
                     }
 
                 } catch (IllegalStateException e) {
@@ -381,12 +385,8 @@ public class ImportService {
                 }
             }
             
-            if (!batchRecords.isEmpty()) {
-                recordRepository.saveAll(batchRecords);
-            }
-
-            if (!consultantsToUpdate.isEmpty()) {
-                userRepository.saveAll(consultantsToUpdate);
+            if (!batchParams.isEmpty()) {
+                flushJdbcBatch(INSERT_SQL, batchParams);
             }
         } catch (IllegalStateException e) {
             // Lỗi nghiệp vụ (ví dụ: đã có dữ liệu đầu kỳ) → ném lại nguyên vẹn
@@ -403,6 +403,15 @@ public class ImportService {
             totalAmount,
             errors
         );
+    }
+
+    /**
+     * Flush batch INSERT bằng JDBC — bypass Hibernate IDENTITY bottleneck.
+     * MySQL rewriteBatchedStatements gom N insert thành 1 multi-row INSERT,
+     * giảm round-trip từ N xuống 1 → nhanh hơn ~5-10x so với JPA saveAll.
+     */
+    private void flushJdbcBatch(String sql, List<Object[]> batchParams) {
+        jdbcTemplate.batchUpdate(sql, batchParams);
     }
 
     // =========================================================================
