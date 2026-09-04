@@ -43,15 +43,19 @@ public class DashboardService {
 
     public ResDashboardOverviewDTO getDashboardOverview(Long periodId, User currentUser) {
         List<Object[]> stats;
+        List<Object[]> ftthN1Stats;
         if (currentUser.getRole() == RoleEnum.MANAGER
                 || currentUser.getRole() == RoleEnum.ADMIN) {
             Long regionId = currentUser.getRole() == RoleEnum.ADMIN ? null
                     : (currentUser.getRegion() != null ? currentUser.getRegion().getId() : null);
             stats = repository.getProgressByPeriod(periodId, regionId);
+            ftthN1Stats = repository.getFtthN1Stats(periodId, regionId);
         } else if (currentUser.getRole() == RoleEnum.NVKD) {
             stats = repository.getProgressByPeriodAndManager(periodId, currentUser.getId());
+            ftthN1Stats = repository.getFtthN1StatsByManager(periodId, currentUser.getId());
         } else {
             stats = repository.getProgressByPeriodAndConsultant(periodId, currentUser.getId());
+            ftthN1Stats = repository.getFtthN1StatsByConsultant(periodId, currentUser.getId());
         }
 
         long totalRecords = 0L;
@@ -107,6 +111,19 @@ public class DashboardService {
             }
         }
 
+        Long ftthN1TotalRecords = 0L;
+        BigDecimal ftthN1ExpectedAmount = BigDecimal.ZERO;
+        Long ftthN1CollectedRecords = 0L;
+        BigDecimal ftthN1CollectedAmount = BigDecimal.ZERO;
+        
+        if (ftthN1Stats != null && !ftthN1Stats.isEmpty()) {
+            Object[] fRow = ftthN1Stats.get(0);
+            if (fRow[0] != null) ftthN1TotalRecords = ((Number) fRow[0]).longValue();
+            if (fRow[1] != null) ftthN1ExpectedAmount = new BigDecimal(fRow[1].toString());
+            if (fRow[2] != null) ftthN1CollectedRecords = ((Number) fRow[2]).longValue();
+            if (fRow[3] != null) ftthN1CollectedAmount = new BigDecimal(fRow[3].toString());
+        }
+
         return new ResDashboardOverviewDTO(
                 totalRecords,
                 collectedRecords,
@@ -116,7 +133,11 @@ public class DashboardService {
                 amountProgressPercentage,
                 recordsProgressPercentage,
                 targetCustomerPercent,
-                targetRevenuePercent);
+                targetRevenuePercent,
+                ftthN1TotalRecords,
+                ftthN1ExpectedAmount,
+                ftthN1CollectedRecords,
+                ftthN1CollectedAmount);
     }
 
     public List<ResConsultantPerformanceDTO> getConsultantPerformance(Long periodId, User currentUser) {

@@ -381,6 +381,40 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
         GROUP BY r.assignedConsultant.id, r.assignedConsultant.fullName
         """)
     List<Object[]> getConsultantDailyStatsByManager(@Param("startOfDay") java.time.Instant startOfDay, @Param("endOfDay") java.time.Instant endOfDay, @Param("managerId") Long managerId);
+
+    @Query("""
+        SELECT COUNT(r), SUM(r.amountDue),
+               SUM(CASE WHEN r.debtStatus = 'DA_GACH_NO' THEN 1 ELSE 0 END),
+               SUM(CASE WHEN r.collectedAmount IS NOT NULL THEN r.collectedAmount ELSE 0 END)
+        FROM CustomerBillingRecord r
+        WHERE r.billingPeriod.id = :periodId
+          AND (cast(:regionId as Long) IS NULL OR r.region.id = :regionId)
+          AND LOWER(r.subscriberNumber) LIKE '%ftth%'
+          AND LOWER(r.adsContent) LIKE '%n1%'
+        """)
+    List<Object[]> getFtthN1Stats(@Param("periodId") Long periodId, @Param("regionId") Long regionId);
+
+    @Query("""
+        SELECT COUNT(r), SUM(r.amountDue),
+               SUM(CASE WHEN r.debtStatus = 'DA_GACH_NO' THEN 1 ELSE 0 END),
+               SUM(CASE WHEN r.collectedAmount IS NOT NULL THEN r.collectedAmount ELSE 0 END)
+        FROM CustomerBillingRecord r
+        WHERE r.billingPeriod.id = :periodId
+          AND (r.assignedConsultant.manager.id = :managerId OR r.assignedConsultant.id = :managerId)
+          AND LOWER(r.subscriberNumber) LIKE '%ftth%'
+          AND LOWER(r.adsContent) LIKE '%n1%'
+        """)
+    List<Object[]> getFtthN1StatsByManager(@Param("periodId") Long periodId, @Param("managerId") Long managerId);
+
+    @Query("""
+        SELECT COUNT(r), SUM(r.amountDue),
+               SUM(CASE WHEN r.debtStatus = 'DA_GACH_NO' THEN 1 ELSE 0 END),
+               SUM(CASE WHEN r.collectedAmount IS NOT NULL THEN r.collectedAmount ELSE 0 END)
+        FROM CustomerBillingRecord r
+        WHERE r.billingPeriod.id = :periodId 
+          AND r.assignedConsultant.id = :consultantId
+          AND LOWER(r.subscriberNumber) LIKE '%ftth%'
+          AND LOWER(r.adsContent) LIKE '%n1%'
+        """)
+    List<Object[]> getFtthN1StatsByConsultant(@Param("periodId") Long periodId, @Param("consultantId") Long consultantId);
 }
-
-
