@@ -390,7 +390,7 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
         WHERE r.billingPeriod.id = :periodId
           AND (cast(:regionId as Long) IS NULL OR r.region.id = :regionId)
           AND LOWER(r.subscriberNumber) LIKE '%ftth%'
-          AND LOWER(r.adsContent) LIKE '%n1%'
+          AND LOWER(r.serviceType) LIKE '%n1%'
         """)
     List<Object[]> getFtthN1Stats(@Param("periodId") Long periodId, @Param("regionId") Long regionId);
 
@@ -402,7 +402,7 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
         WHERE r.billingPeriod.id = :periodId
           AND (r.assignedConsultant.manager.id = :managerId OR r.assignedConsultant.id = :managerId)
           AND LOWER(r.subscriberNumber) LIKE '%ftth%'
-          AND LOWER(r.adsContent) LIKE '%n1%'
+          AND LOWER(r.serviceType) LIKE '%n1%'
         """)
     List<Object[]> getFtthN1StatsByManager(@Param("periodId") Long periodId, @Param("managerId") Long managerId);
 
@@ -414,7 +414,7 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
         WHERE r.billingPeriod.id = :periodId 
           AND r.assignedConsultant.id = :consultantId
           AND LOWER(r.subscriberNumber) LIKE '%ftth%'
-          AND LOWER(r.adsContent) LIKE '%n1%'
+          AND LOWER(r.serviceType) LIKE '%n1%'
         """)
     List<Object[]> getFtthN1StatsByConsultant(@Param("periodId") Long periodId, @Param("consultantId") Long consultantId);
 }
