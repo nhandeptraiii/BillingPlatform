@@ -71,6 +71,10 @@
 
     cursor: pointer;
   }
+
+  select:first-child {
+    min-width: 120px;
+  }
 }
 
 .progressSection {

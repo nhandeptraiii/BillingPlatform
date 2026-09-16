@@ -26,7 +26,7 @@ export const fetchConsultants = createAsyncThunk(
     const res =
       await consultantService.getList(params);
 
-    return res.data.data;
+    return res.data.data || res.data;
   }
 );
 

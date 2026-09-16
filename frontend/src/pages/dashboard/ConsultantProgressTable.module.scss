@@ -1,0 +1,11 @@
+.section { margin-top: 24px; background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,.06); }
+.header { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 16px; h2 { margin: 0; color: #c30000; font-size: 20px; } p { margin: 5px 0 0; color: #666; } button { border: 0; border-radius: 7px; padding: 10px 16px; color: white; background: #c30000; font-weight: 600; cursor: pointer; } }
+.tableWrap { overflow-x: auto; }
+table { min-width: 1000px; width: 100%; border-collapse: collapse; text-align: right; }
+th, td { padding: 9px 10px; border: 1px solid #ddd; white-space: nowrap; }
+thead th { background: #d70018; color: #fff; text-align: center; }
+tbody tr:nth-child(even) { background: #fafafa; }
+td:first-child, .name { text-align: left; }
+.required { color: #d70018; font-weight: 700; }
+tfoot th { background: #fff200; color: #111; font-size: 15px; }
+@media (max-width: 600px) { .header { align-items: flex-start; flex-direction: column; } }

@@ -46,7 +46,7 @@ export const fetchConsultants =
           size: 100
         });
 
-      return response.data.data;
+      return response.data.data || response.data;
     }
   );
 

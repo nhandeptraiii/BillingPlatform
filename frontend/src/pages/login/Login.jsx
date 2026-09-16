@@ -67,7 +67,8 @@ if (role === "CONSULTANT") {
 // Chỉ ADMIN và MANAGER được vào web
 if (
   role !== "ADMIN" &&
-  role !== "MANAGER"
+  role !== "MANAGER" &&
+  role !== "NVKD"
 ) {
 
   dispatch(logout());

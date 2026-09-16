@@ -13,10 +13,10 @@ export const fetchDashboard = createAsyncThunk(
       ]);
 
     return {
-      overview: overview.data.data,
-      consultants: consultants.data.data,
-      dailyStats: dailyStats.data.data,
-      warnings: warnings.data.data,
+      overview: overview.data.data || overview.data,
+      consultants: consultants.data.data || consultants.data,
+      dailyStats: dailyStats.data.data || dailyStats.data,
+      warnings: warnings.data.data || warnings.data,
     };
   }
 );
