@@ -1,7 +1,7 @@
 .grid {
   display: grid;
 
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
 
   gap: 20px;
 }
@@ -52,3 +52,5 @@
     color: #d70018;
   }
 }
+.cardFtth { @extend .card; }
+.cardFtth { border-top-color: #6a1b9a; span { color: #6a1b9a; } }

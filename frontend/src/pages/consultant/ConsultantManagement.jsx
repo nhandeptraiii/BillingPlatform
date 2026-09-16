@@ -7,6 +7,9 @@ import { fetchConsultants } from "../../redux/slices/consultantSlice";
 
 import ConsultantTable from "./ConsultantTable";
 import ConsultantModal from "./ConsultantModal";
+import consultantService from "../../services/consultantService";
+import { toast } from "react-toastify";
+import { canImportEmployees } from "../../utils/role";
 
 const ConsultantManagement = () => {
   const dispatch = useDispatch();
@@ -27,6 +30,7 @@ const ConsultantManagement = () => {
 
   const [searchText, setSearchText] =
   useState("");
+  const currentUser = useSelector(state => state.auth.user);
 
   useEffect(() => {
 
@@ -72,6 +76,26 @@ const handleReset = () => {
     setOpenModal(true);
   };
 
+  const refresh = () => dispatch(fetchConsultants({ page, size: 5, keyword, role }));
+  const handleDelete = async (row) => {
+    if (!window.confirm(`Xóa tài khoản ${row.fullName}?`)) return;
+    try { await consultantService.delete(row.id); toast.success("Đã xóa tài khoản"); refresh(); }
+    catch (error) { toast.error(error.response?.data?.message || "Không thể xóa tài khoản"); }
+  };
+  const handleResetPassword = async (row) => {
+    const newPassword = window.prompt(`Nhập mật khẩu mới cho ${row.fullName}:`);
+    if (!newPassword) return;
+    try { await consultantService.resetPassword(row.id, { newPassword }); toast.success("Đã đặt lại mật khẩu"); }
+    catch (error) { toast.error(error.response?.data?.message || "Không thể đặt lại mật khẩu"); }
+  };
+  const handleImport = async (event) => {
+    const file = event.target.files?.[0]; if (!file) return;
+    if (!/\.xlsx?$/i.test(file.name)) { toast.warning("Chỉ hỗ trợ file Excel (.xlsx, .xls)"); return; }
+    try { const { data } = await consultantService.importConsultants(file); toast.success(data.message || "Import nhân viên thành công"); refresh(); }
+    catch (error) { toast.error(error.response?.data?.message || "Import nhân viên thất bại"); }
+    finally { event.target.value = ""; }
+  };
+
   useEffect(() => {
 
   dispatch(
@@ -100,12 +124,15 @@ const handleReset = () => {
           </p>
         </div>
 
+        <div className={styles.headerActions}>
+        {canImportEmployees(currentUser) && <label className={styles.importBtn}>Import nhân viên<input type="file" accept=".xlsx,.xls" hidden onChange={handleImport} /></label>}
         <button
           className={styles.addBtn}
           onClick={handleCreate}
         >
           + Thêm mới
         </button>
+        </div>
       </div>
 
       <div className={styles.searchSection}>
@@ -148,6 +175,10 @@ const handleReset = () => {
           <option value="CONSULTANT">
             Tư vấn viên
           </option>
+
+          <option value="NVKD">
+            Nhân viên kinh doanh
+          </option>
         </select>
 
         <button
@@ -163,6 +194,8 @@ const handleReset = () => {
         data={consultants}
         loading={loading}
         onEdit={handleEdit}
+        onDelete={handleDelete}
+        onResetPassword={handleResetPassword}
         page={page}
         pageSize={5}
         totalPages={totalPages}
@@ -173,16 +206,7 @@ const handleReset = () => {
         open={openModal}
         onClose={() => setOpenModal(false)}
         consultant={selectedRow}
-        onSuccess={() =>
-          dispatch(
-            fetchConsultants({
-              page,
-              size: 5,
-              keyword,
-              role
-            })
-          )
-        }
+        onSuccess={refresh}
       />
     </div>
   );

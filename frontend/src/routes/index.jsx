@@ -12,7 +12,7 @@ import CollectionProgress from "../pages/collectionProgress/CollectionProgress";
 import ConsultantManagement from "../pages/consultant/ConsultantManagement";
 import StoreConfig from "../pages/storeConfig/StoreConfig";
 import ProtectedRoute from "./ProtectedRoute";
-import ConsultantProgress from "../pages/consultantProgress/ConsultantProgress";
+import RegionTargets from "../pages/regionTargets/RegionTargets";
 
 const getNormalizedRole = (user) => {
 
@@ -109,12 +109,7 @@ function AppRoutes() {
             <StoreConfig />
           }
           />
-          <Route
-           path="/consultant-progress"
-           element={
-            <ConsultantProgress />
-           }
-           />
+          <Route path="/region-targets" element={<RegionTargets />} />
         </Route>
 
 

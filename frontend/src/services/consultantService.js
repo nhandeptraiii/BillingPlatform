@@ -17,6 +17,22 @@ const consultantService = {
 
   delete(id) {
     return axiosClient.delete(`/users/${id}`);
+  },
+
+  resetPassword(id, data) {
+    return axiosClient.put(`/users/${id}/reset-password`, data);
+  },
+
+  importConsultants(file) {
+    const formData = new FormData();
+    formData.append("file", file);
+    return axiosClient.post("/users/import-consultants", formData, {
+      headers: { "Content-Type": "multipart/form-data" }
+    });
+  },
+
+  assignManager(id, managerId) {
+    return axiosClient.patch(`/users/${id}/manager`, null, { params: { managerId } });
   }
 };
 

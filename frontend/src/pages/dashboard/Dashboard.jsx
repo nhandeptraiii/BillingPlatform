@@ -9,7 +9,7 @@ import {
 
 import KPISection from "./KPISection";
 
-import ConsultantChart from "./ConsultantChart";
+import ConsultantProgressTable from "./ConsultantProgressTable";
 
 import DailyStatsTable from "./DailyStatsTable";
 
@@ -117,8 +117,11 @@ const Dashboard = () => {
 
       <KPISection overview={overview} />
 
-      <ConsultantChart
-        data={consultants}
+      <ConsultantProgressTable
+        consultants={consultants}
+        overview={overview}
+        month={month}
+        year={year}
       />
 
       <div className={styles.progressSection}>
