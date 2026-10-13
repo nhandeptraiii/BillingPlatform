@@ -36,7 +36,8 @@ export default function ConsultantModal({ open, onClose, consultant, onSuccess }
   if (!open) return null;
   const set = (field, value) => setForm(previous => ({ ...previous, [field]: value }));
   const canChooseRole = currentRole === "ADMIN" || (currentRole === "MANAGER" && !consultant);
-  const canAssignConsultant = ["ADMIN", "MANAGER"].includes(currentRole) && form.role === "CONSULTANT" && (currentRole === "ADMIN" || !consultant);
+  // ADMIN và MANAGER đều có quyền phân công/chuyển nhóm tư vấn viên
+  const canAssignConsultant = ["ADMIN", "MANAGER"].includes(currentRole) && form.role === "CONSULTANT";
 
   const submit = async () => {
     if (currentRole === "ADMIN" && !form.regionId) return toast.error("Vui lòng chọn khu vực");
@@ -46,15 +47,15 @@ export default function ConsultantModal({ open, onClose, consultant, onSuccess }
         const payload = { username: currentRole === "ADMIN" ? form.username || undefined : undefined, fullName: form.fullName, phone: form.phone, role };
         if (currentRole === "ADMIN") payload.regionId = Number(form.regionId);
         await consultantService.update(consultant.id, payload);
-        // PATCH /users/{id}/manager is ADMIN-only in the current backend.
-        if (currentRole === "ADMIN" && role === "CONSULTANT" && String(form.managerId || "") !== String(consultant.managerId || "")) {
+        // ADMIN và MANAGER có quyền cập nhật người quản lý (chuyển nhóm)
+        if (["ADMIN", "MANAGER"].includes(currentRole) && role === "CONSULTANT" && String(form.managerId || "") !== String(consultant.managerId || "")) {
           await consultantService.assignManager(consultant.id, form.managerId ? Number(form.managerId) : null);
         }
         toast.success("Cập nhật người dùng thành công");
       } else {
         const payload = { username: form.username, fullName: form.fullName, phone: form.phone, password: form.password, role };
         if (currentRole === "ADMIN") payload.regionId = Number(form.regionId);
-        // MANAGER can create a CONSULTANT and send managerId to assign that NVKD immediately.
+        // MANAGER hoặc ADMIN có thể gán NVKD quản lý ngay khi tạo
         if (role === "CONSULTANT" && form.managerId) payload.managerId = Number(form.managerId);
         await consultantService.create(payload);
         toast.success("Thêm người dùng thành công");

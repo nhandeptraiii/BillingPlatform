@@ -141,6 +141,8 @@ public class CustomerRecordService {
         record.setAmountDue(req.amountDue());
         record.setFullAddress(req.fullAddress());
         record.setServiceType(req.serviceType());
+        record.setFtthN1(vn.viettel.khdn.billing_platform.util.ServiceClassifier
+            .isFtthN1(req.subscriberNumber(), req.serviceType()));
 
         if (req.assignedConsultantUsername() != null && !req.assignedConsultantUsername().trim().isEmpty()) {
             User consultant = userRepository.findByUsername(req.assignedConsultantUsername().trim())

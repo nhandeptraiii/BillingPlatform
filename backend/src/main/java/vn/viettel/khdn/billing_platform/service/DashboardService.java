@@ -17,6 +17,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.io.ByteArrayOutputStream;
@@ -144,36 +145,129 @@ public class DashboardService {
     }
 
     public List<ResConsultantPerformanceDTO> getConsultantPerformance(Long periodId, User currentUser) {
-        List<Object[]> data;
+        Long regionId = null;
+        Long managerId = null;
+        boolean includeUnassigned = false;
+
         if (currentUser.getRole() == RoleEnum.MANAGER || currentUser.getRole() == RoleEnum.ADMIN) {
-            Long regionId = currentUser.getRole() == RoleEnum.ADMIN ? null
+            regionId = currentUser.getRole() == RoleEnum.ADMIN ? null
                     : (currentUser.getRegion() != null ? currentUser.getRegion().getId() : null);
-            data = repository.getConsultantPerformanceWithTarget(periodId, regionId);
+            includeUnassigned = true;
         } else if (currentUser.getRole() == RoleEnum.NVKD) {
-            data = repository.getConsultantPerformanceWithTargetByManager(periodId, currentUser.getId());
+            managerId = currentUser.getId();
         } else {
-            return new ArrayList<>(); // CONSULTANT does not use this, but to be safe
+            return new ArrayList<>(); // CONSULTANT không dùng API này
         }
+
+        // Chỉ tiêu của khu vực (ADMIN không thuộc khu vực nào => chưa đặt chỉ tiêu)
+        RegionTarget target = null;
+        if (currentUser.getRole() != RoleEnum.ADMIN && currentUser.getRegion() != null) {
+            target = regionTargetRepository
+                    .findByRegionIdAndBillingPeriodId(currentUser.getRegion().getId(), periodId)
+                    .orElse(null);
+        }
+        Double customerPct = target != null ? target.getTargetCustomerPercent() : null;
+        Double revenuePct = target != null ? target.getTargetRevenuePercent() : null;
+        Double ftthPct = target != null ? target.getTargetFtthN1Percent() : null;
 
         List<ResConsultantPerformanceDTO> result = new ArrayList<>();
 
-        for (Object[] row : data) {
-            Long consultantId = row[0] != null ? ((Number) row[0]).longValue() : null;
-            String consultantName = (String) row[1];
-            Long targetRecords = ((Number) row[2]).longValue();
-            BigDecimal targetAmount = row[3] != null ? new BigDecimal(row[3].toString()) : BigDecimal.ZERO;
-            Long collectedRecords = row[4] != null ? ((Number) row[4]).longValue() : 0L;
-            BigDecimal collectedAmount = row[5] != null ? new BigDecimal(row[5].toString()) : BigDecimal.ZERO;
+        for (Object[] row : repository.getConsultantStats(periodId, regionId, managerId)) {
+            Long consultantId = ((Number) row[0]).longValue();
+            RoleEnum rowRole = (RoleEnum) row[2];
+            // NVKD được giao hồ sơ trực tiếp: tự làm nhóm của chính mình
+            Long mId = rowRole == RoleEnum.NVKD ? consultantId : (row[3] != null ? ((Number) row[3]).longValue() : null);
+            String mName = rowRole == RoleEnum.NVKD ? (String) row[1] : (String) row[4];
 
-            result.add(new ResConsultantPerformanceDTO(
-                    consultantId,
-                    consultantName,
-                    targetRecords,
-                    targetAmount,
-                    collectedRecords,
-                    collectedAmount));
+            result.add(buildPerformance(consultantId, (String) row[1], mId, mName,
+                    toLong(row[5]), toBigDecimal(row[6]), toLong(row[7]), toBigDecimal(row[8]),
+                    toLong(row[9]), toBigDecimal(row[10]), toLong(row[11]), toBigDecimal(row[12]),
+                    customerPct, revenuePct, ftthPct));
         }
+
+        if (includeUnassigned) {
+            for (Object[] row : repository.getUnassignedStats(periodId, regionId)) {
+                long total = toLong(row[0]);
+                if (total > 0) {
+                    result.add(buildPerformance(null, "Chưa gán tư vấn viên", null, null,
+                            total, toBigDecimal(row[1]), toLong(row[2]), toBigDecimal(row[3]),
+                            0L, BigDecimal.ZERO, 0L, BigDecimal.ZERO,
+                            customerPct, revenuePct, ftthPct));
+                }
+            }
+        }
+
+        // Gom nhóm theo NVKD (nhóm chưa gán NVKD xếp cuối), trong nhóm xếp theo tên
+        result.sort(Comparator
+                .comparing((ResConsultantPerformanceDTO d) -> d.getManagerName() == null ? 1 : 0)
+                .thenComparing(d -> d.getManagerName() == null ? "" : d.getManagerName(),
+                        String.CASE_INSENSITIVE_ORDER)
+                .thenComparing(d -> d.getConsultantId() == null ? 1 : 0)
+                .thenComparing(d -> d.getConsultantName() == null ? "" : d.getConsultantName(),
+                        String.CASE_INSENSITIVE_ORDER));
         return result;
+    }
+
+    private ResConsultantPerformanceDTO buildPerformance(Long consultantId, String consultantName,
+            Long managerId, String managerName,
+            long totalRecords, BigDecimal totalAmount, long collectedRecords, BigDecimal collectedAmount,
+            long ftthTotal, BigDecimal ftthAmount, long ftthCollected, BigDecimal ftthCollectedAmount,
+            Double customerPct, Double revenuePct, Double ftthPct) {
+        ResConsultantPerformanceDTO dto = new ResConsultantPerformanceDTO();
+        dto.setConsultantId(consultantId);
+        dto.setConsultantName(consultantName);
+        dto.setManagerId(managerId);
+        dto.setManagerName(managerName);
+        dto.setTargetRecords(totalRecords);
+        dto.setTargetAmount(totalAmount);
+        dto.setCollectedRecords(collectedRecords);
+        dto.setCollectedAmount(collectedAmount);
+        dto.setTargetCustomerPercent(customerPct);
+        dto.setTargetRevenuePercent(revenuePct);
+        if (customerPct != null) {
+            long required = requiredRecords(totalRecords, customerPct);
+            dto.setRequiredRecords(required);
+            dto.setRemainingRecords(Math.max(required - collectedRecords, 0L));
+        }
+        if (revenuePct != null) {
+            BigDecimal required = requiredAmount(totalAmount, revenuePct);
+            dto.setRequiredAmount(required);
+            dto.setRemainingAmount(required.subtract(collectedAmount).max(BigDecimal.ZERO));
+        }
+
+        dto.setFtthN1TotalRecords(ftthTotal);
+        dto.setFtthN1ExpectedAmount(ftthAmount);
+        dto.setFtthN1CollectedRecords(ftthCollected);
+        dto.setFtthN1CollectedAmount(ftthCollectedAmount);
+        dto.setTargetFtthN1Percent(ftthPct);
+        if (ftthPct != null) {
+            long requiredRecords = requiredRecords(ftthTotal, ftthPct);
+            BigDecimal requiredAmount = requiredAmount(ftthAmount, ftthPct);
+            dto.setFtthN1RequiredRecords(requiredRecords);
+            dto.setFtthN1RequiredAmount(requiredAmount);
+            dto.setFtthN1RemainingRecords(Math.max(requiredRecords - ftthCollected, 0L));
+            dto.setFtthN1RemainingAmount(requiredAmount.subtract(ftthCollectedAmount).max(BigDecimal.ZERO));
+        }
+        return dto;
+    }
+
+    /** Số KH cần đạt = làm tròn LÊN (đầu kỳ x %). */
+    private static long requiredRecords(long total, double percent) {
+        return BigDecimal.valueOf(total).multiply(BigDecimal.valueOf(percent))
+                .divide(BigDecimal.valueOf(100), 0, RoundingMode.CEILING).longValue();
+    }
+
+    /** Số tiền cần đạt = làm tròn LÊN đến đồng (đầu kỳ x %). */
+    private static BigDecimal requiredAmount(BigDecimal total, double percent) {
+        return total.multiply(BigDecimal.valueOf(percent)).divide(BigDecimal.valueOf(100), 0, RoundingMode.CEILING);
+    }
+
+    private static long toLong(Object value) {
+        return value != null ? ((Number) value).longValue() : 0L;
+    }
+
+    private static BigDecimal toBigDecimal(Object value) {
+        return value != null ? new BigDecimal(value.toString()) : BigDecimal.ZERO;
     }
 
     public List<ResConsultantDailyStatsDTO> getDailyStats(LocalDate date, User currentUser) {
@@ -218,7 +312,6 @@ public class DashboardService {
                 ((org.apache.poi.xssf.streaming.SXSSFSheet) sheet).trackAllColumnsForAutoSizing();
             }
 
-            // Header Style
             CellStyle headerStyle = workbook.createCellStyle();
             headerStyle.setAlignment(HorizontalAlignment.CENTER);
             headerStyle.setVerticalAlignment(VerticalAlignment.CENTER);
@@ -226,25 +319,27 @@ public class DashboardService {
             headerFont.setBold(true);
             headerStyle.setFont(headerFont);
 
-            // Row 0: Merged headers
+            // Row 0: nhóm cột
             Row row0 = sheet.createRow(0);
             row0.setHeight((short) 500);
-            org.apache.poi.ss.usermodel.Cell cellDoanhThu = row0.createCell(2);
-            cellDoanhThu.setCellValue("Doanh thu cước");
-            cellDoanhThu.setCellStyle(headerStyle);
-            sheet.addMergedRegion(new CellRangeAddress(0, 0, 2, 5));
+            String[][] groups = { { "Đầu kỳ", "3", "4" }, { "Đã thu (đã gạch nợ)", "5", "8" },
+                    { "Phải thu để đạt chỉ tiêu", "9", "10" } };
+            for (String[] g : groups) {
+                int from = Integer.parseInt(g[1]);
+                int to = Integer.parseInt(g[2]);
+                org.apache.poi.ss.usermodel.Cell c = row0.createCell(from);
+                c.setCellValue(g[0]);
+                c.setCellStyle(headerStyle);
+                sheet.addMergedRegion(new CellRangeAddress(0, 0, from, to));
+            }
 
-            org.apache.poi.ss.usermodel.Cell cellKhachHang = row0.createCell(6);
-            cellKhachHang.setCellValue("Số lượng khách hàng");
-            cellKhachHang.setCellStyle(headerStyle);
-            sheet.addMergedRegion(new CellRangeAddress(0, 0, 6, 9));
-
-            // Row 1: Sub-headers
+            // Row 1: tiêu đề cột
             Row row1 = sheet.createRow(1);
             String[] headers = {
-                    "STT", "Tên nhân viên",
-                    "Đã thu lũy kế", "Tổng cước phải thu", "Tồn đầu kỳ", "% Hoàn thành",
-                    "Đã thu lũy kế", "Tổng KH phải thu", "Tồn đầu kỳ", "% Hoàn thành"
+                    "STT", "NVKD quản lý", "Tư vấn viên",
+                    "Khách hàng", "Số tiền",
+                    "Khách hàng", "% KH", "Số tiền", "% Tiền",
+                    "Khách hàng", "Số tiền"
             };
             for (int i = 0; i < headers.length; i++) {
                 org.apache.poi.ss.usermodel.Cell cell = row1.createCell(i);
@@ -252,52 +347,34 @@ public class DashboardService {
                 cell.setCellStyle(headerStyle);
             }
 
-            // Data rows
             int rowIdx = 2;
             int stt = 1;
             for (ResConsultantPerformanceDTO r : records) {
                 Row row = sheet.createRow(rowIdx++);
+                BigDecimal totalAmount = r.getTargetAmount() != null ? r.getTargetAmount() : BigDecimal.ZERO;
+                BigDecimal collectedAmount = r.getCollectedAmount() != null ? r.getCollectedAmount() : BigDecimal.ZERO;
+                long totalRecords = r.getTargetRecords() != null ? r.getTargetRecords() : 0L;
+                long collectedRecords = r.getCollectedRecords() != null ? r.getCollectedRecords() : 0L;
 
                 row.createCell(0).setCellValue(stt++);
-                row.createCell(1).setCellValue(r.getConsultantName() != null ? r.getConsultantName() : "");
-
-                // Doanh thu
-                BigDecimal collectedAmount = r.getCollectedAmount() != null ? r.getCollectedAmount() : BigDecimal.ZERO;
-                BigDecimal targetAmount = r.getTargetAmount() != null ? r.getTargetAmount() : BigDecimal.ZERO;
-                BigDecimal remainAmount = targetAmount.subtract(collectedAmount);
-                if (remainAmount.compareTo(BigDecimal.ZERO) < 0)
-                    remainAmount = BigDecimal.ZERO;
-
-                double amountPercent = 0.0;
-                if (targetAmount.compareTo(BigDecimal.ZERO) > 0) {
-                    amountPercent = collectedAmount.divide(targetAmount, 4, RoundingMode.HALF_UP)
-                            .multiply(BigDecimal.valueOf(100)).doubleValue();
+                row.createCell(1).setCellValue(r.getManagerName() != null ? r.getManagerName() : "");
+                row.createCell(2).setCellValue(r.getConsultantName() != null ? r.getConsultantName() : "");
+                row.createCell(3).setCellValue(totalRecords);
+                row.createCell(4).setCellValue(totalAmount.doubleValue());
+                row.createCell(5).setCellValue(collectedRecords);
+                row.createCell(6).setCellValue(percentText(collectedRecords, totalRecords));
+                row.createCell(7).setCellValue(collectedAmount.doubleValue());
+                row.createCell(8).setCellValue(percentText(collectedAmount.doubleValue(), totalAmount.doubleValue()));
+                if (r.getRemainingRecords() != null && r.getRemainingAmount() != null) {
+                    row.createCell(9).setCellValue(r.getRemainingRecords());
+                    row.createCell(10).setCellValue(r.getRemainingAmount().doubleValue());
+                } else {
+                    row.createCell(9).setCellValue("Chưa đặt chỉ tiêu");
+                    row.createCell(10).setCellValue("Chưa đặt chỉ tiêu");
                 }
-
-                row.createCell(2).setCellValue(collectedAmount.doubleValue());
-                row.createCell(3).setCellValue(targetAmount.doubleValue());
-                row.createCell(4).setCellValue(remainAmount.doubleValue());
-                row.createCell(5).setCellValue(String.format("%.2f %%", amountPercent));
-
-                // Khách hàng
-                long collectedRecords = r.getCollectedRecords() != null ? r.getCollectedRecords() : 0L;
-                long targetRecords = r.getTargetRecords() != null ? r.getTargetRecords() : 0L;
-                long remainRecords = targetRecords - collectedRecords;
-                if (remainRecords < 0)
-                    remainRecords = 0L;
-
-                double recordsPercent = 0.0;
-                if (targetRecords > 0) {
-                    recordsPercent = (double) collectedRecords / targetRecords * 100;
-                }
-
-                row.createCell(6).setCellValue(collectedRecords);
-                row.createCell(7).setCellValue(targetRecords);
-                row.createCell(8).setCellValue(remainRecords);
-                row.createCell(9).setCellValue(String.format("%.2f %%", recordsPercent));
             }
 
-            for (int i = 0; i < 10; i++) {
+            for (int i = 0; i < headers.length; i++) {
                 sheet.autoSizeColumn(i);
             }
 
@@ -308,5 +385,9 @@ public class DashboardService {
         } finally {
             workbook.dispose();
         }
+    }
+
+    private static String percentText(double part, double total) {
+        return total > 0 ? String.format("%.2f %%", part / total * 100) : "0.00 %";
     }
 }

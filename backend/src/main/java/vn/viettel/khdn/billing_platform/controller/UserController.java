@@ -62,6 +62,7 @@ public class UserController {
             @RequestParam(value = "keyword", required = false) String keyword,
             @RequestParam(value = "role", required = false) String role,
             @RequestParam(value = "managerId", required = false) Long managerId,
+            @RequestParam(value = "unassigned", required = false, defaultValue = "false") boolean unassigned,
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "10") int size) {
 
@@ -76,21 +77,21 @@ public class UserController {
             }
         }
         ResUserDTO currentUser = getCurrentUser();
-        return ResponseEntity.ok(userService.searchUsers(currentUser, roleEnum, keyword, managerId, pageable));
+        return ResponseEntity.ok(userService.searchUsers(currentUser, roleEnum, keyword, managerId, unassigned, pageable));
     }
 
     @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN', 'NVKD')")
     @GetMapping("/{id}")
     public ResponseEntity<ResUserDTO> getById(@PathVariable("id") Long id) {
-        return ResponseEntity.ok(userService.getById(id));
+        return ResponseEntity.ok(userService.getById(id, getCurrentUser()));
     }
 
-    @PreAuthorize("hasAnyAuthority('ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'NVKD')")
     @PatchMapping("/{id}/manager")
     public ResponseEntity<ResUserDTO> assignManager(
             @PathVariable("id") Long id,
             @RequestParam(value = "managerId", required = false) Long managerId) {
-        return ResponseEntity.ok(userService.assignManager(id, managerId));
+        return ResponseEntity.ok(userService.assignManager(id, managerId, getCurrentUser()));
     }
 
     @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN', 'NVKD')")
@@ -108,20 +109,23 @@ public class UserController {
         return ResponseEntity.ok(userService.update(id, req, currentUser));
     }
 
-    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN', 'NVKD')")
     @PatchMapping("/{id}/status")
     public ResponseEntity<ResUserDTO> setStatus(@PathVariable("id") Long id,
                                           @RequestParam("status") String status) {
-        return ResponseEntity.ok(userService.setStatus(id, status));
+        return ResponseEntity.ok(userService.setStatus(id, status, getCurrentUser()));
     }
 
     @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN', 'NVKD')")
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable("id") Long id) {
+    public ResponseEntity<Void> delete(
+            @PathVariable("id") Long id,
+            @RequestParam(value = "reassignToId", required = false) Long reassignToId) {
         ResUserDTO currentUser = getCurrentUser();
-        userService.delete(id, currentUser);
+        userService.delete(id, reassignToId, currentUser);
         return ResponseEntity.noContent().build();
     }
+
 
     @PreAuthorize("isAuthenticated()")
     @PutMapping("/me/password")

@@ -15,8 +15,8 @@ import vn.viettel.khdn.billing_platform.model.User;
 import vn.viettel.khdn.billing_platform.model.dto.ImportResultDTO;
 import vn.viettel.khdn.billing_platform.model.enums.BillingPeriodStatusEnum;
 import vn.viettel.khdn.billing_platform.repository.BillingPeriodRepository;
-import vn.viettel.khdn.billing_platform.repository.CustomerBillingRecordRepository;
 import vn.viettel.khdn.billing_platform.repository.UserRepository;
+import vn.viettel.khdn.billing_platform.service.BillingPeriodService;
 import vn.viettel.khdn.billing_platform.service.ImportService;
 import vn.viettel.khdn.billing_platform.util.SecurityUtil;
 
@@ -28,16 +28,16 @@ public class BillingPeriodController {
     private final BillingPeriodRepository billingPeriodRepository;
     private final ImportService importService;
     private final UserRepository userRepository;
-    private final CustomerBillingRecordRepository customerBillingRecordRepository;
+    private final BillingPeriodService billingPeriodService;
 
     public BillingPeriodController(BillingPeriodRepository billingPeriodRepository,
             ImportService importService,
             UserRepository userRepository,
-            CustomerBillingRecordRepository customerBillingRecordRepository) {
+            BillingPeriodService billingPeriodService) {
         this.billingPeriodRepository = billingPeriodRepository;
         this.importService = importService;
         this.userRepository = userRepository;
-        this.customerBillingRecordRepository = customerBillingRecordRepository;
+        this.billingPeriodService = billingPeriodService;
     }
 
     private User getCurrentUser() {
@@ -107,27 +107,15 @@ public class BillingPeriodController {
     }
 
     /**
-     * DELETE /billing-periods/{id} — Xóa toàn bộ kỳ cước (Manager & Admin)
-     * Xóa toàn bộ CustomerBillingRecord trước, sau đó xóa BillingPeriod.
-     * Khi xóa xong, cho phép import lại kỳ mới.
+     * DELETE /billing-periods/{id} — Xóa dữ liệu kỳ cước đã import.
+     * - ADMIN: xóa toàn bộ dữ liệu của kỳ (mọi khu vực).
+     * - MANAGER: chỉ xóa dữ liệu + chỉ tiêu của khu vực mình; kỳ chỉ bị xóa khi
+     *   không còn dữ liệu của khu vực khác.
+     * Sau khi xóa, khu vực đó có thể import lại đầu kỳ.
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN')")
-    @org.springframework.transaction.annotation.Transactional
-    public ResponseEntity<Void> deletePeriod(@PathVariable("id") Long id) {
-        BillingPeriod period = billingPeriodRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy kỳ ID: " + id));
-
-        if (period.getStatus() == BillingPeriodStatusEnum.CLOSED) {
-            throw new IllegalStateException("Không thể xóa kỳ đã đóng");
-        }
-
-        // Xóa toàn bộ records thu cước trước
-        customerBillingRecordRepository.deleteAllByBillingPeriodId(id);
-
-        // Xóa kỳ cước
-        billingPeriodRepository.delete(period);
-
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<BillingPeriodService.DeletePeriodResult> deletePeriod(@PathVariable("id") Long id) {
+        return ResponseEntity.ok(billingPeriodService.deletePeriod(id, getCurrentUser()));
     }
 }

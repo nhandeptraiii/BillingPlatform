@@ -39,6 +39,8 @@ import vn.viettel.khdn.billing_platform.model.dto.ImportResultDTO;
 import vn.viettel.khdn.billing_platform.model.enums.CollectionStatusEnum;
 import vn.viettel.khdn.billing_platform.model.enums.DebtStatusEnum;
 import vn.viettel.khdn.billing_platform.model.enums.RoleEnum;
+import vn.viettel.khdn.billing_platform.model.enums.BillingPeriodStatusEnum;
+import vn.viettel.khdn.billing_platform.util.ServiceClassifier;
 import vn.viettel.khdn.billing_platform.model.enums.SyncWarningEnum;
 import vn.viettel.khdn.billing_platform.repository.BillingPeriodRepository;
 import vn.viettel.khdn.billing_platform.repository.CustomerBillingRecordRepository;
@@ -133,7 +135,7 @@ public class ImportService {
             String[] headers = {
                     "STT", "Mã Hợp Đồng", "Tên Khách Hàng", "Số TB/Account", "SĐT Liên Hệ",
                     "Địa Chỉ", "Tổng Cước (VNĐ)", "Hình Thức TT", "Username Nhân Viên",
-                    "Kỳ Thanh Toán", "Hình Thức Quản Lý", "Nội Dung QC"
+                    "Kỳ Thanh Toán", "Loại Dịch Vụ", "Nội Dung QC"
             };
 
             // Header Style
@@ -256,9 +258,11 @@ public class ImportService {
                     (billing_period_id, region_id, customer_code, customer_name,
                      subscriber_number, phone_number, full_address, amount_due,
                      service_type, ads_content, assigned_consultant_id,
-                     collection_status, debt_status, sync_warning)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     collection_status, debt_status, sync_warning, is_ftth_n1)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """;
+        // Chống trùng dòng trong cùng file (Mã HĐ + Số TB + kỳ)
+        Set<String> seenKeys = new HashSet<>();
         // Buffer chứa dữ liệu đã validate, chờ flush bằng JDBC batch
         List<Object[]> batchParams = new ArrayList<>();
 
@@ -318,13 +322,21 @@ public class ImportService {
                     if (!periodCache.containsKey(periodKey)) {
                         java.util.Optional<BillingPeriod> existing = billingPeriodRepository.findByMonthAndYear(month,
                                 year);
-                        if (existing.isPresent() && createdBy.getRegion() != null) {
-                            boolean hasData = recordRepository.existsByBillingPeriodIdAndRegionId(
-                                    existing.get().getId(), createdBy.getRegion().getId());
+                        if (existing.isPresent()
+                                && existing.get().getStatus() == BillingPeriodStatusEnum.CLOSED) {
+                            throw new IllegalStateException(
+                                    "Kỳ " + month + "/" + year + " đã đóng, không thể import đầu kỳ.");
+                        }
+                        if (existing.isPresent()) {
+                            boolean hasData = createdBy.getRegion() != null
+                                    ? recordRepository.existsByBillingPeriodIdAndRegionId(
+                                            existing.get().getId(), createdBy.getRegion().getId())
+                                    : recordRepository.existsByBillingPeriodId(existing.get().getId());
                             if (hasData) {
                                 throw new IllegalStateException(
-                                        "Kỳ " + month + "/" + year + " đã có dữ liệu đầu kỳ cho khu vực của bạn. "
-                                                + "Vui lòng xóa kỳ này trước khi import lại.");
+                                        "Kỳ " + month + "/" + year + " đã có dữ liệu đầu kỳ"
+                                                + (createdBy.getRegion() != null ? " cho khu vực của bạn" : "")
+                                                + ". Vui lòng xóa kỳ này trước khi import lại.");
                             }
                         }
                     }
@@ -365,6 +377,13 @@ public class ImportService {
                     BigDecimal amountDue = amount != null ? amount : BigDecimal.ZERO;
                     Long regionId = createdBy.getRegion() != null ? createdBy.getRegion().getId() : null;
 
+                    if (!seenKeys.add(periodKey + "|" + customerCode + "|" + subscriberNum)) {
+                        errors.add(new ImportResultDTO.ImportErrorRow(currentRowNum,
+                                "Dòng trùng (Mã HĐ " + customerCode + " + Số TB " + subscriberNum
+                                        + ") trong file, đã bỏ qua"));
+                        continue;
+                    }
+
                     batchParams.add(new Object[] {
                             period.getId(), regionId, customerCode, customerName,
                             subscriberNum, phoneNumber, fullAddress, amountDue,
@@ -373,7 +392,8 @@ public class ImportService {
                             consultantId,
                             CollectionStatusEnum.CHUA_THU.name(),
                             DebtStatusEnum.CHUA_GACH_NO.name(),
-                            SyncWarningEnum.NONE.name()
+                            SyncWarningEnum.NONE.name(),
+                            ServiceClassifier.isFtthN1(subscriberNum, serviceType)
                     });
                     totalAmount = totalAmount.add(amountDue);
                     successCount++;

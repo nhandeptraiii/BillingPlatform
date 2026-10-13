@@ -28,6 +28,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
             WHERE (:role IS NULL OR u.role = :role)
               AND (cast(:regionId as Long) IS NULL OR u.region.id = :regionId)
               AND (cast(:managerId as Long) IS NULL OR u.manager.id = :managerId)
+              AND (:unassigned = false OR u.manager IS NULL)
               AND (
                 :keyword IS NULL
                 OR LOWER(u.fullName) LIKE LOWER(CONCAT('%', :keyword, '%'))
@@ -39,6 +40,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
             @Param("regionId") Long regionId,
             @Param("role") RoleEnum role,
             @Param("managerId") Long managerId,
+            @Param("unassigned") boolean unassigned,
             @Param("keyword") String keyword,
             Pageable pageable);
+
 }

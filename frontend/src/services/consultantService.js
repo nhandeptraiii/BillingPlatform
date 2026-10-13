@@ -15,8 +15,10 @@ const consultantService = {
     return axiosClient.put(`/users/${id}`, data);
   },
 
-  delete(id) {
-    return axiosClient.delete(`/users/${id}`);
+  delete(id, reassignToId) {
+    return axiosClient.delete(`/users/${id}`, {
+      params: reassignToId ? { reassignToId } : undefined
+    });
   },
 
   resetPassword(id, data) {

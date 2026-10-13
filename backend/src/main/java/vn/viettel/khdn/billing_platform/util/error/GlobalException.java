@@ -118,4 +118,24 @@ public class GlobalException {
         res.setMessage("Dung lượng file upload vượt quá giới hạn cho phép");
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(res);
     }
+
+    @ExceptionHandler(TransferRequiredException.class)
+    public ResponseEntity<RestResponse<Object>> handleTransferRequired(TransferRequiredException ex) {
+        RestResponse<Object> res = new RestResponse<>();
+        res.setStatusCode(HttpStatus.CONFLICT.value());
+        res.setError("TRANSFER_REQUIRED");
+        res.setMessage(ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(res);
+    }
+
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+    public ResponseEntity<RestResponse<Object>> handleDataIntegrity(
+            org.springframework.dao.DataIntegrityViolationException ex) {
+        RestResponse<Object> res = new RestResponse<>();
+        res.setStatusCode(HttpStatus.CONFLICT.value());
+        res.setError("DataIntegrityViolation");
+        res.setMessage("Dữ liệu đang được sử dụng ở nơi khác nên không thể thực hiện thao tác này");
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(res);
+    }
+
 }

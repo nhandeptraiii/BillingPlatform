@@ -65,6 +65,10 @@ public class CustomerBillingRecord {
     @Column(length = 1000)
     private String adsContent; // Nội dung quảng cáo
 
+    // FTTH N1: cột D có "ftth" và cột K có "N1" (tính khi import, xem ServiceClassifier)
+    @Column(name = "is_ftth_n1")
+    private Boolean ftthN1 = false;
+
     // ---- Phân công ----
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assigned_consultant_id")

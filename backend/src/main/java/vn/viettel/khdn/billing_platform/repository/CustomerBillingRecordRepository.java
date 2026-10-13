@@ -285,50 +285,122 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
             @Param("fullAddress") String fullAddress,
             @Param("search") String search);
 
-    // Thá»‘ng kĂª tiáº¿n Ä‘á»™ theo ká»³
-    @Query("""
-        SELECT r.collectionStatus, r.debtStatus, COUNT(r), SUM(r.amountDue),
-               SUM(CASE 
-                   WHEN r.collectedAmount IS NOT NULL THEN r.collectedAmount 
-                   ELSE 0 
-               END)
-        FROM CustomerBillingRecord r
-        WHERE r.billingPeriod.id = :periodId
-          AND (cast(:regionId as Long) IS NULL OR r.region.id = :regionId)
-        GROUP BY r.collectionStatus, r.debtStatus
-        """)
+    // =====================================================================
+    // THỐNG KÊ DASHBOARD
+    // Quy ước "đã thu" (thống nhất mọi nơi):
+    //  - Số KH đã thu  = số hồ sơ debtStatus = DA_GACH_NO
+    //  - Số tiền đã thu = tổng tiền của hồ sơ DA_GACH_NO, cắt trần ở amountDue
+    //    (collectedAmount null/0 mà đã gạch nợ => tính bằng amountDue)
+    // =====================================================================
+    String GACH_NO_AMOUNT = """
+            SUM(CASE WHEN r.debtStatus = 'DA_GACH_NO' THEN (
+                    CASE WHEN r.collectedAmount IS NULL OR r.collectedAmount <= 0 THEN COALESCE(r.amountDue, 0)
+                         WHEN r.collectedAmount > COALESCE(r.amountDue, 0) THEN COALESCE(r.amountDue, 0)
+                         ELSE r.collectedAmount END)
+                ELSE 0 END)
+            """;
+    String GACH_NO_COUNT = "SUM(CASE WHEN r.debtStatus = 'DA_GACH_NO' THEN 1 ELSE 0 END)";
+
+    // Tiến độ theo kỳ (MANAGER/ADMIN)
+    @Query("SELECT r.collectionStatus, r.debtStatus, COUNT(r), SUM(r.amountDue), " + GACH_NO_AMOUNT + """
+            FROM CustomerBillingRecord r
+            WHERE r.billingPeriod.id = :periodId
+              AND (cast(:regionId as Long) IS NULL OR r.region.id = :regionId)
+            GROUP BY r.collectionStatus, r.debtStatus
+            """)
     List<Object[]> getProgressByPeriod(@Param("periodId") Long periodId, @Param("regionId") Long regionId);
 
-    // Thá»‘ng kĂª tiáº¿n Ä‘á»™ theo ká»³ vĂ  tÆ° váº¥n viĂªn
-    @Query("""
-        SELECT r.collectionStatus, r.debtStatus, COUNT(r), SUM(r.amountDue),
-               SUM(CASE 
-                   WHEN r.collectedAmount IS NOT NULL THEN r.collectedAmount 
-                   ELSE 0 
-               END)
-        FROM CustomerBillingRecord r
-        WHERE r.billingPeriod.id = :periodId AND r.assignedConsultant.id = :consultantId
-        GROUP BY r.collectionStatus, r.debtStatus
-        """)
-    List<Object[]> getProgressByPeriodAndConsultant(@Param("periodId") Long periodId, @Param("consultantId") Long consultantId);
+    // Tiến độ theo kỳ và tư vấn viên
+    @Query("SELECT r.collectionStatus, r.debtStatus, COUNT(r), SUM(r.amountDue), " + GACH_NO_AMOUNT + """
+            FROM CustomerBillingRecord r
+            WHERE r.billingPeriod.id = :periodId AND r.assignedConsultant.id = :consultantId
+            GROUP BY r.collectionStatus, r.debtStatus
+            """)
+    List<Object[]> getProgressByPeriodAndConsultant(@Param("periodId") Long periodId,
+            @Param("consultantId") Long consultantId);
 
-    // Thá»‘ng kĂª theo tÆ° váº¥n viĂªn trong ká»³ (kĂ¨m chá»‰ tiĂªu) - Sá»‘ há»“ sÆ¡ vĂ  sá»‘ tiá»n Ä‘á»u cÄƒn cá»© vĂ o gáº¡ch ná»£
-    @Query("""
-        SELECT r.assignedConsultant.id, r.assignedConsultant.fullName,
-               COUNT(r), SUM(r.amountDue),
-               SUM(CASE WHEN r.debtStatus = 'DA_GACH_NO' THEN 1 ELSE 0 END),
-               SUM(CASE 
-                   WHEN r.collectedAmount IS NOT NULL THEN r.collectedAmount 
-                   ELSE 0 
-               END)
-        FROM CustomerBillingRecord r
-        WHERE r.billingPeriod.id = :periodId
-          AND (cast(:regionId as Long) IS NULL OR r.region.id = :regionId)
-        GROUP BY r.assignedConsultant.id, r.assignedConsultant.fullName
-        """)
-    List<Object[]> getConsultantPerformanceWithTarget(@Param("periodId") Long periodId, @Param("regionId") Long regionId);
+    // Tiến độ theo kỳ cho NVKD (nhóm tư vấn viên + hồ sơ giao thẳng cho NVKD)
+    @Query("SELECT r.collectionStatus, r.debtStatus, COUNT(r), SUM(r.amountDue), " + GACH_NO_AMOUNT + """
+            FROM CustomerBillingRecord r
+            WHERE r.billingPeriod.id = :periodId
+              AND (r.assignedConsultant.manager.id = :managerId OR r.assignedConsultant.id = :managerId)
+            GROUP BY r.collectionStatus, r.debtStatus
+            """)
+    List<Object[]> getProgressByPeriodAndManager(@Param("periodId") Long periodId,
+            @Param("managerId") Long managerId);
 
-    // Thá»‘ng kĂª giá» in bill Ä‘áº§u tiĂªn vĂ  sá»‘ lÆ°á»£ng thu trong ngĂ y cá»§a cĂ¡c tÆ° váº¥n viĂªn
+    // FTTH N1: [tổng hồ sơ, tổng phải thu, số hồ sơ đã gạch nợ, số tiền đã gạch nợ]
+    @Query("SELECT COUNT(r), SUM(r.amountDue), " + GACH_NO_COUNT + ", " + GACH_NO_AMOUNT + """
+            FROM CustomerBillingRecord r
+            WHERE r.billingPeriod.id = :periodId
+              AND (cast(:regionId as Long) IS NULL OR r.region.id = :regionId)
+              AND r.ftthN1 = true
+            """)
+    List<Object[]> getFtthN1Stats(@Param("periodId") Long periodId, @Param("regionId") Long regionId);
+
+    @Query("SELECT COUNT(r), SUM(r.amountDue), " + GACH_NO_COUNT + ", " + GACH_NO_AMOUNT + """
+            FROM CustomerBillingRecord r
+            WHERE r.billingPeriod.id = :periodId
+              AND (r.assignedConsultant.manager.id = :managerId OR r.assignedConsultant.id = :managerId)
+              AND r.ftthN1 = true
+            """)
+    List<Object[]> getFtthN1StatsByManager(@Param("periodId") Long periodId, @Param("managerId") Long managerId);
+
+    @Query("SELECT COUNT(r), SUM(r.amountDue), " + GACH_NO_COUNT + ", " + GACH_NO_AMOUNT + """
+            FROM CustomerBillingRecord r
+            WHERE r.billingPeriod.id = :periodId
+              AND r.assignedConsultant.id = :consultantId
+              AND r.ftthN1 = true
+            """)
+    List<Object[]> getFtthN1StatsByConsultant(@Param("periodId") Long periodId,
+            @Param("consultantId") Long consultantId);
+
+    /**
+     * Thống kê theo từng tư vấn viên (LEFT JOIN từ User nên tư vấn viên chưa có hồ sơ vẫn hiện).
+     * Cột: [0] id, [1] họ tên, [2] role, [3] managerId, [4] managerName,
+     *      [5] tổng hồ sơ, [6] tổng phải thu, [7] hồ sơ đã gạch nợ, [8] tiền đã gạch nợ,
+     *      [9] FTTH N1 tổng hồ sơ, [10] FTTH N1 phải thu, [11] FTTH N1 đã gạch nợ, [12] FTTH N1 tiền đã gạch nợ
+     * regionId != null: lọc theo khu vực (MANAGER); managerId != null: chỉ nhóm của NVKD đó.
+     */
+    @Query("""
+            SELECT c.id, c.fullName, c.role, m.id, m.fullName,
+                   COUNT(r), COALESCE(SUM(r.amountDue), 0),
+                   COALESCE(""" + GACH_NO_COUNT + """
+                   , 0),
+                   COALESCE(""" + GACH_NO_AMOUNT + """
+                   , 0),
+                   COALESCE(SUM(CASE WHEN r.ftthN1 = true THEN 1 ELSE 0 END), 0),
+                   COALESCE(SUM(CASE WHEN r.ftthN1 = true THEN r.amountDue ELSE 0 END), 0),
+                   COALESCE(SUM(CASE WHEN r.ftthN1 = true AND r.debtStatus = 'DA_GACH_NO' THEN 1 ELSE 0 END), 0),
+                   COALESCE(SUM(CASE WHEN r.ftthN1 = true AND r.debtStatus = 'DA_GACH_NO' THEN (
+                        CASE WHEN r.collectedAmount IS NULL OR r.collectedAmount <= 0 THEN COALESCE(r.amountDue, 0)
+                             WHEN r.collectedAmount > COALESCE(r.amountDue, 0) THEN COALESCE(r.amountDue, 0)
+                             ELSE r.collectedAmount END) ELSE 0 END), 0)
+            FROM User c
+            LEFT JOIN c.manager m
+            LEFT JOIN CustomerBillingRecord r ON r.assignedConsultant.id = c.id AND r.billingPeriod.id = :periodId
+            WHERE (c.role = 'CONSULTANT' OR (c.role = 'NVKD' AND r.id IS NOT NULL))
+              AND (c.status = 'ACTIVE' OR r.id IS NOT NULL)
+              AND (cast(:regionId as Long) IS NULL OR c.region.id = :regionId)
+              AND (cast(:managerId as Long) IS NULL OR m.id = :managerId OR c.id = :managerId)
+            GROUP BY c.id, c.fullName, c.role, m.id, m.fullName
+            """)
+    List<Object[]> getConsultantStats(@Param("periodId") Long periodId,
+            @Param("regionId") Long regionId, @Param("managerId") Long managerId);
+
+    // Hồ sơ chưa gán tư vấn viên (để tổng các dòng khớp tổng overview của MANAGER/ADMIN)
+    // Cột: [0] tổng hồ sơ, [1] tổng phải thu, [2] đã gạch nợ, [3] tiền đã gạch nợ
+    @Query("SELECT COUNT(r), COALESCE(SUM(r.amountDue), 0), COALESCE(" + GACH_NO_COUNT + ", 0), COALESCE("
+            + GACH_NO_AMOUNT + """
+            , 0)
+            FROM CustomerBillingRecord r
+            WHERE r.billingPeriod.id = :periodId
+              AND r.assignedConsultant IS NULL
+              AND (cast(:regionId as Long) IS NULL OR r.region.id = :regionId)
+            """)
+    List<Object[]> getUnassignedStats(@Param("periodId") Long periodId, @Param("regionId") Long regionId);
+
+    // Thống kê giờ in bill đầu tiên và số lượng thu trong ngày của các tư vấn viên
     @Query("""
         SELECT r.assignedConsultant.id, r.assignedConsultant.fullName,
                MIN(r.billPrintedAt),
@@ -340,35 +412,6 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
         GROUP BY r.assignedConsultant.id, r.assignedConsultant.fullName
         """)
     List<Object[]> getConsultantDailyStats(@Param("startOfDay") java.time.Instant startOfDay, @Param("endOfDay") java.time.Instant endOfDay, @Param("regionId") Long regionId);
-
-    // DĂ nh cho NVKD quáº£n lĂ½
-    @Query("""
-        SELECT r.collectionStatus, r.debtStatus, COUNT(r), SUM(r.amountDue),
-               SUM(CASE 
-                   WHEN r.collectedAmount IS NOT NULL THEN r.collectedAmount 
-                   ELSE 0 
-               END)
-        FROM CustomerBillingRecord r
-        WHERE r.billingPeriod.id = :periodId 
-          AND (r.assignedConsultant.manager.id = :managerId OR r.assignedConsultant.id = :managerId)
-        GROUP BY r.collectionStatus, r.debtStatus
-        """)
-    List<Object[]> getProgressByPeriodAndManager(@Param("periodId") Long periodId, @Param("managerId") Long managerId);
-
-    @Query("""
-        SELECT r.assignedConsultant.id, r.assignedConsultant.fullName,
-               COUNT(r), SUM(r.amountDue),
-               SUM(CASE WHEN r.debtStatus = 'DA_GACH_NO' THEN 1 ELSE 0 END),
-               SUM(CASE 
-                   WHEN r.collectedAmount IS NOT NULL THEN r.collectedAmount 
-                   ELSE 0 
-               END)
-        FROM CustomerBillingRecord r
-        WHERE r.billingPeriod.id = :periodId
-          AND (r.assignedConsultant.manager.id = :managerId OR r.assignedConsultant.id = :managerId)
-        GROUP BY r.assignedConsultant.id, r.assignedConsultant.fullName
-        """)
-    List<Object[]> getConsultantPerformanceWithTargetByManager(@Param("periodId") Long periodId, @Param("managerId") Long managerId);
 
     @Query("""
         SELECT r.assignedConsultant.id, r.assignedConsultant.fullName,
@@ -382,39 +425,32 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
         """)
     List<Object[]> getConsultantDailyStatsByManager(@Param("startOfDay") java.time.Instant startOfDay, @Param("endOfDay") java.time.Instant endOfDay, @Param("managerId") Long managerId);
 
-    @Query("""
-        SELECT COUNT(r), SUM(r.amountDue),
-               SUM(CASE WHEN r.debtStatus = 'DA_GACH_NO' THEN 1 ELSE 0 END),
-               SUM(CASE WHEN r.collectedAmount IS NOT NULL THEN r.collectedAmount ELSE 0 END)
-        FROM CustomerBillingRecord r
-        WHERE r.billingPeriod.id = :periodId
-          AND (cast(:regionId as Long) IS NULL OR r.region.id = :regionId)
-          AND LOWER(r.subscriberNumber) LIKE '%ftth%'
-          AND LOWER(r.serviceType) LIKE '%n1%'
-        """)
-    List<Object[]> getFtthN1Stats(@Param("periodId") Long periodId, @Param("regionId") Long regionId);
+    // =====================================================================
+    // XÓA KỲ THEO KHU VỰC / LỊCH SỬ NGƯỜI DÙNG
+    // =====================================================================
+    boolean existsByBillingPeriodId(Long billingPeriodId);
 
-    @Query("""
-        SELECT COUNT(r), SUM(r.amountDue),
-               SUM(CASE WHEN r.debtStatus = 'DA_GACH_NO' THEN 1 ELSE 0 END),
-               SUM(CASE WHEN r.collectedAmount IS NOT NULL THEN r.collectedAmount ELSE 0 END)
-        FROM CustomerBillingRecord r
-        WHERE r.billingPeriod.id = :periodId
-          AND (r.assignedConsultant.manager.id = :managerId OR r.assignedConsultant.id = :managerId)
-          AND LOWER(r.subscriberNumber) LIKE '%ftth%'
-          AND LOWER(r.serviceType) LIKE '%n1%'
-        """)
-    List<Object[]> getFtthN1StatsByManager(@Param("periodId") Long periodId, @Param("managerId") Long managerId);
+    long countByBillingPeriodId(Long billingPeriodId);
 
-    @Query("""
-        SELECT COUNT(r), SUM(r.amountDue),
-               SUM(CASE WHEN r.debtStatus = 'DA_GACH_NO' THEN 1 ELSE 0 END),
-               SUM(CASE WHEN r.collectedAmount IS NOT NULL THEN r.collectedAmount ELSE 0 END)
-        FROM CustomerBillingRecord r
-        WHERE r.billingPeriod.id = :periodId 
-          AND r.assignedConsultant.id = :consultantId
-          AND LOWER(r.subscriberNumber) LIKE '%ftth%'
-          AND LOWER(r.serviceType) LIKE '%n1%'
-        """)
-    List<Object[]> getFtthN1StatsByConsultant(@Param("periodId") Long periodId, @Param("consultantId") Long consultantId);
+
+    long countByBillingPeriodIdAndRegionId(Long billingPeriodId, Long regionId);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("DELETE FROM CustomerBillingRecord r WHERE r.billingPeriod.id = :periodId AND r.region.id = :regionId")
+    int deleteByBillingPeriodIdAndRegionId(@Param("periodId") Long periodId, @Param("regionId") Long regionId);
+
+    boolean existsByAssignedConsultantId(Long userId);
+
+    long countByAssignedConsultantId(Long userId);
+
+
+    boolean existsByCollectedById(Long userId);
+
+    boolean existsByDebtMarkedById(Long userId);
+
+    // Chuyển toàn bộ hồ sơ của tư vấn viên cũ sang người nhận
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("UPDATE CustomerBillingRecord r SET r.assignedConsultant = :to WHERE r.assignedConsultant.id = :fromId")
+    int reassignConsultant(@Param("fromId") Long fromId,
+            @Param("to") vn.viettel.khdn.billing_platform.model.User to);
 }

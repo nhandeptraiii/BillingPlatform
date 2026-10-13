@@ -66,6 +66,8 @@ td {
     font-weight: 600;
   }
 }
-.resetBtn, .deleteBtn { border: none; border-radius: 6px; padding: 8px 10px; margin-left: 6px; color: white; cursor: pointer; }
+.resetBtn, .deleteBtn, .claimBtn { border: none; border-radius: 6px; padding: 8px 10px; margin-left: 6px; color: white; cursor: pointer; }
 .resetBtn { background: #555; }
 .deleteBtn { background: #9d1111; }
+.claimBtn { background: #0ea45c; margin-left: 0; margin-right: 6px; font-weight: 600; &:hover { background: #0b8047; } }
+

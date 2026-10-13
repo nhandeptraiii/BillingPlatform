@@ -11,4 +11,6 @@ public interface BillingPeriodRepository extends JpaRepository<BillingPeriod, Lo
     Optional<BillingPeriod> findByMonthAndYear(Integer month, Integer year);
 
     boolean existsByMonthAndYear(Integer month, Integer year);
+
+    boolean existsByCreatedById(Long userId);
 }

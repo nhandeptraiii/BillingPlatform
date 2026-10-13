@@ -79,8 +79,51 @@ const handleReset = () => {
   const refresh = () => dispatch(fetchConsultants({ page, size: 5, keyword, role }));
   const handleDelete = async (row) => {
     if (!window.confirm(`Xóa tài khoản ${row.fullName}?`)) return;
-    try { await consultantService.delete(row.id); toast.success("Đã xóa tài khoản"); refresh(); }
-    catch (error) { toast.error(error.response?.data?.message || "Không thể xóa tài khoản"); }
+    try {
+      await consultantService.delete(row.id);
+      toast.success("Đã xóa tài khoản thành công");
+      refresh();
+    } catch (error) {
+      if (error.response?.status === 409 || error.response?.data?.message?.includes("bàn giao")) {
+        try {
+          const res = await consultantService.getList({ page: 0, size: 100, role: "CONSULTANT" });
+          const list = (res.data?.data?.content || res.data?.content || []).filter(u => u.id !== row.id && u.status !== "INACTIVE");
+          if (list.length === 0) {
+            toast.error("Không còn tư vấn viên nào khác trong khu vực để bàn giao hồ sơ.");
+            return;
+          }
+          const promptMsg = `${error.response?.data?.message || "Cần bàn giao hồ sơ cước trước khi xóa."}\n\nDanh sách tư vấn viên tiếp nhận:\n` +
+            list.map((u, i) => `${i + 1}. ${u.fullName} (@${u.username})`).join("\n") +
+            `\n\nNhập số thứ tự tư vấn viên nhận bàn giao (1 - ${list.length}):`;
+          const input = window.prompt(promptMsg);
+          if (!input) return;
+          const index = parseInt(input.trim(), 10) - 1;
+          const selected = list[index];
+          if (!selected) {
+            toast.error("Lựa chọn không hợp lệ");
+            return;
+          }
+          await consultantService.delete(row.id, selected.id);
+          toast.success(`Đã bàn giao hồ sơ sang "${selected.fullName}" và xử lý tài khoản thành công`);
+          refresh();
+        } catch (innerError) {
+          toast.error(innerError.response?.data?.message || "Lỗi khi bàn giao hồ sơ");
+        }
+      } else {
+        toast.error(error.response?.data?.message || "Không thể xóa tài khoản");
+      }
+    }
+  };
+
+  const handleClaim = async (row) => {
+    if (!window.confirm(`Bạn muốn tự nhận tư vấn viên "${row.fullName}" vào nhóm quản lý của mình?`)) return;
+    try {
+      await consultantService.assignManager(row.id, currentUser.id);
+      toast.success(`Đã nhận tư vấn viên ${row.fullName} vào nhóm quản lý thành công!`);
+      refresh();
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Không thể nhận tư vấn viên");
+    }
   };
   const handleResetPassword = async (row) => {
     const newPassword = window.prompt(`Nhập mật khẩu mới cho ${row.fullName}:`);
@@ -196,6 +239,8 @@ const handleReset = () => {
         onEdit={handleEdit}
         onDelete={handleDelete}
         onResetPassword={handleResetPassword}
+        onClaim={handleClaim}
+        currentUser={currentUser}
         page={page}
         pageSize={5}
         totalPages={totalPages}
