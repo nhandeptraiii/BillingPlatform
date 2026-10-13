@@ -106,7 +106,12 @@ public class GlobalException {
         RestResponse<Object> res = new RestResponse<>();
         res.setStatusCode(HttpStatus.FORBIDDEN.value());
         res.setError("AccessDeniedException");
-        res.setMessage("Bạn không có quyền truy cập hoặc thực hiện thao tác này");
+        String msg = ex.getMessage();
+        if (msg != null && !msg.isBlank() && !"Access Denied".equalsIgnoreCase(msg)) {
+            res.setMessage(msg);
+        } else {
+            res.setMessage("Bạn không có quyền truy cập hoặc thực hiện thao tác này");
+        }
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(res);
     }
 

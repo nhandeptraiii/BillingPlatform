@@ -44,13 +44,15 @@ export default function ConsultantModal({ open, onClose, consultant, onSuccess }
     const role = currentRole === "NVKD" ? "CONSULTANT" : form.role;
     try {
       if (consultant) {
-        const payload = { username: currentRole === "ADMIN" ? form.username || undefined : undefined, fullName: form.fullName, phone: form.phone, role };
+        const payload = {
+          username: currentRole === "ADMIN" ? form.username || undefined : undefined,
+          fullName: form.fullName,
+          phone: form.phone,
+          role,
+          managerId: role === "CONSULTANT" ? (form.managerId ? Number(form.managerId) : null) : null
+        };
         if (currentRole === "ADMIN") payload.regionId = Number(form.regionId);
         await consultantService.update(consultant.id, payload);
-        // ADMIN và MANAGER có quyền cập nhật người quản lý (chuyển nhóm)
-        if (["ADMIN", "MANAGER"].includes(currentRole) && role === "CONSULTANT" && String(form.managerId || "") !== String(consultant.managerId || "")) {
-          await consultantService.assignManager(consultant.id, form.managerId ? Number(form.managerId) : null);
-        }
         toast.success("Cập nhật người dùng thành công");
       } else {
         const payload = { username: form.username, fullName: form.fullName, phone: form.phone, password: form.password, role };

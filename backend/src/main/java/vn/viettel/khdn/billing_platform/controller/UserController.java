@@ -80,13 +80,13 @@ public class UserController {
         return ResponseEntity.ok(userService.searchUsers(currentUser, roleEnum, keyword, managerId, unassigned, pageable));
     }
 
-    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN', 'NVKD')")
+    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN', 'NVKD', 'ROLE_MANAGER', 'ROLE_ADMIN', 'ROLE_NVKD')")
     @GetMapping("/{id}")
     public ResponseEntity<ResUserDTO> getById(@PathVariable("id") Long id) {
         return ResponseEntity.ok(userService.getById(id, getCurrentUser()));
     }
 
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'NVKD')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'NVKD', 'ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_NVKD')")
     @PatchMapping("/{id}/manager")
     public ResponseEntity<ResUserDTO> assignManager(
             @PathVariable("id") Long id,
@@ -94,14 +94,14 @@ public class UserController {
         return ResponseEntity.ok(userService.assignManager(id, managerId, getCurrentUser()));
     }
 
-    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN', 'NVKD')")
+    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN', 'NVKD', 'ROLE_MANAGER', 'ROLE_ADMIN', 'ROLE_NVKD')")
     @PostMapping
     public ResponseEntity<ResUserDTO> create(@Valid @RequestBody ReqUserCreateDTO req) {
         ResUserDTO currentUser = getCurrentUser();
         return ResponseEntity.status(HttpStatus.CREATED).body(userService.create(req, currentUser));
     }
 
-    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN', 'NVKD')")
+    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN', 'NVKD', 'ROLE_MANAGER', 'ROLE_ADMIN', 'ROLE_NVKD')")
     @PutMapping("/{id}")
     public ResponseEntity<ResUserDTO> update(@PathVariable("id") Long id,
                                        @Valid @RequestBody ReqUserUpdateDTO req) {
@@ -109,14 +109,14 @@ public class UserController {
         return ResponseEntity.ok(userService.update(id, req, currentUser));
     }
 
-    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN', 'NVKD')")
+    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN', 'NVKD', 'ROLE_MANAGER', 'ROLE_ADMIN', 'ROLE_NVKD')")
     @PatchMapping("/{id}/status")
     public ResponseEntity<ResUserDTO> setStatus(@PathVariable("id") Long id,
                                           @RequestParam("status") String status) {
         return ResponseEntity.ok(userService.setStatus(id, status, getCurrentUser()));
     }
 
-    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN', 'NVKD')")
+    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN', 'NVKD', 'ROLE_MANAGER', 'ROLE_ADMIN', 'ROLE_NVKD')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(
             @PathVariable("id") Long id,

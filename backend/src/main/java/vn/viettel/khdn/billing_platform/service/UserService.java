@@ -238,6 +238,10 @@ public class UserService {
 
         if (currentUser.role() == RoleEnum.MANAGER || currentUser.role() == RoleEnum.NVKD) {
             // Giữ nguyên region của người dùng (MANAGER/NVKD không đổi region cho CONSULTANT)
+            if (user.getRegion() == null && currentUser.regionId() != null) {
+                Region mgrRegion = regionRepository.findById(currentUser.regionId()).orElse(null);
+                user.setRegion(mgrRegion);
+            }
         } else if (currentUser.role() == RoleEnum.ADMIN) {
             if (req.regionId() != null) {
                 Region region = regionRepository.findById(req.regionId())
@@ -249,6 +253,25 @@ public class UserService {
                 }
             } else {
                 user.setRegion(null);
+            }
+        }
+
+        // Cập nhật manager cho CONSULTANT nếu MANAGER hoặc ADMIN thực hiện
+        if (targetRole == RoleEnum.CONSULTANT && (currentUser.role() == RoleEnum.MANAGER || currentUser.role() == RoleEnum.ADMIN)) {
+            if (req.managerId() != null) {
+                User manager = userRepository.findById(req.managerId())
+                    .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy người quản lý ID: " + req.managerId()));
+                if (currentUser.role() == RoleEnum.MANAGER) {
+                    if (manager.getRole() != RoleEnum.NVKD && manager.getRole() != RoleEnum.MANAGER) {
+                        throw new IllegalArgumentException("Người quản lý được gán phải có role NVKD");
+                    }
+                    if (manager.getRegion() != null && currentUser.regionId() != null && !manager.getRegion().getId().equals(currentUser.regionId())) {
+                        throw new IllegalArgumentException("Người quản lý được gán phải thuộc cùng khu vực");
+                    }
+                }
+                user.setManager(manager);
+            } else if (req.role() != null) {
+                user.setManager(null);
             }
         }
 
@@ -320,7 +343,10 @@ public class UserService {
                 .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy tài khoản NVKD"));
             user.setManager(manager);
         } else if (currentUser.role() == RoleEnum.MANAGER) {
-            if (user.getRegion() == null || !user.getRegion().getId().equals(currentUser.regionId())) {
+            if (user.getRegion() == null && currentUser.regionId() != null) {
+                Region mgrRegion = regionRepository.findById(currentUser.regionId()).orElse(null);
+                user.setRegion(mgrRegion);
+            } else if (user.getRegion() != null && currentUser.regionId() != null && !user.getRegion().getId().equals(currentUser.regionId())) {
                 throw new IllegalArgumentException("Tư vấn viên không thuộc khu vực của bạn");
             }
             if (managerId == null) {
@@ -328,7 +354,13 @@ public class UserService {
             } else {
                 User manager = userRepository.findById(managerId)
                     .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy người quản lý ID: " + managerId));
-                if (manager.getRole() != RoleEnum.NVKD || manager.getRegion() == null || !manager.getRegion().getId().equals(currentUser.regionId())) {
+                if (manager.getRole() != RoleEnum.NVKD && manager.getRole() != RoleEnum.MANAGER) {
+                    throw new IllegalArgumentException("Người quản lý được gán phải là NVKD thuộc cùng khu vực");
+                }
+                if (manager.getRegion() == null && currentUser.regionId() != null) {
+                    Region mgrRegion = regionRepository.findById(currentUser.regionId()).orElse(null);
+                    manager.setRegion(mgrRegion);
+                } else if (manager.getRegion() != null && currentUser.regionId() != null && !manager.getRegion().getId().equals(currentUser.regionId())) {
                     throw new IllegalArgumentException("Người quản lý được gán phải là NVKD thuộc cùng khu vực");
                 }
                 user.setManager(manager);
