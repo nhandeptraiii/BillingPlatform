@@ -149,13 +149,17 @@ public class UserService {
                 .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy khu vực của GĐKV"));
             user.setRegion(region);
             // GĐKV có thể gán CONSULTANT cho một NVKD cụ thể trong khu vực
-            if (req.managerId() != null) {
+            if (req.role() == RoleEnum.CONSULTANT && req.managerId() != null) {
                 User manager = userRepository.findById(req.managerId())
                     .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy NVKD ID: " + req.managerId()));
-                if (manager.getRole() != RoleEnum.NVKD || manager.getRegion() == null || !manager.getRegion().getId().equals(currentUser.regionId())) {
+                if ((manager.getRole() != RoleEnum.NVKD && manager.getRole() != RoleEnum.MANAGER)
+                        || manager.getRegion() == null
+                        || !manager.getRegion().getId().equals(currentUser.regionId())) {
                     throw new IllegalArgumentException("NVKD không thuộc khu vực của bạn");
                 }
                 user.setManager(manager);
+            } else {
+                user.setManager(null);
             }
         } else if (currentUser.role() == RoleEnum.NVKD) {
             // NVKD: chỉ tạo CONSULTANT, gán khu vực và manager = NVKD này
@@ -174,10 +178,12 @@ public class UserService {
             } else if (req.role() != RoleEnum.ADMIN) {
                 throw new IllegalArgumentException("Khu vực không được để trống khi tạo " + req.role());
             }
-            if (req.managerId() != null) {
+            if (req.role() == RoleEnum.CONSULTANT && req.managerId() != null) {
                 User manager = userRepository.findById(req.managerId())
                     .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy người quản lý ID: " + req.managerId()));
                 user.setManager(manager);
+            } else {
+                user.setManager(null);
             }
         }
 
@@ -190,12 +196,14 @@ public class UserService {
         User user = userRepository.findById(id)
             .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy người dùng ID: " + id));
 
+        RoleEnum oldRole = user.getRole();
+
         if (currentUser.role() == RoleEnum.MANAGER) {
             // GĐKV: được sửa NVKD và CONSULTANT trong khu vực của mình
             if (user.getRole() == RoleEnum.MANAGER || user.getRole() == RoleEnum.ADMIN) {
                 throw new IllegalArgumentException("GĐKV không được sửa tài khoản cấp trên");
             }
-            if (user.getRegion() == null || !user.getRegion().getId().equals(currentUser.regionId())) {
+            if (user.getRegion() != null && !user.getRegion().getId().equals(currentUser.regionId())) {
                 throw new IllegalArgumentException("Nhân viên này không thuộc khu vực của bạn");
             }
             if (req.role() != null && req.role() != RoleEnum.NVKD && req.role() != RoleEnum.CONSULTANT) {
@@ -256,8 +264,16 @@ public class UserService {
             }
         }
 
-        // Cập nhật manager cho CONSULTANT nếu MANAGER hoặc ADMIN thực hiện
-        if (targetRole == RoleEnum.CONSULTANT && (currentUser.role() == RoleEnum.MANAGER || currentUser.role() == RoleEnum.ADMIN)) {
+        // Nếu từ NVKD đổi sang vai trò khác thì gỡ liên kết quản lý của các tư vấn viên cấp dưới
+        if (oldRole == RoleEnum.NVKD && targetRole != RoleEnum.NVKD) {
+            userRepository.clearManagerId(user.getId());
+        }
+
+        // Nếu vai trò mới không phải CONSULTANT (VD: đổi từ CONSULTANT sang NVKD) thì bắt buộc bỏ người quản lý cũ
+        if (targetRole != RoleEnum.CONSULTANT) {
+            user.setManager(null);
+        } else if (currentUser.role() == RoleEnum.MANAGER || currentUser.role() == RoleEnum.ADMIN) {
+            // Cập nhật manager cho CONSULTANT nếu MANAGER hoặc ADMIN thực hiện
             if (req.managerId() != null) {
                 User manager = userRepository.findById(req.managerId())
                     .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy người quản lý ID: " + req.managerId()));
@@ -270,7 +286,7 @@ public class UserService {
                     }
                 }
                 user.setManager(manager);
-            } else if (req.role() != null) {
+            } else {
                 user.setManager(null);
             }
         }
@@ -330,13 +346,18 @@ public class UserService {
 
         if (currentUser.role() == RoleEnum.NVKD) {
             // NVKD: được tự nhận tư vấn viên chưa có quản lý trong cùng khu vực
-            if (user.getRegion() == null || !user.getRegion().getId().equals(currentUser.regionId())) {
+            if (user.getRegion() == null && currentUser.regionId() != null) {
+                Region mgrRegion = regionRepository.findById(currentUser.regionId()).orElse(null);
+                user.setRegion(mgrRegion);
+            } else if (user.getRegion() != null && !user.getRegion().getId().equals(currentUser.regionId())) {
                 throw new IllegalArgumentException("Tư vấn viên không thuộc khu vực của bạn");
             }
             if (managerId == null || !managerId.equals(currentUser.id())) {
                 throw new IllegalArgumentException("NVKD chỉ có quyền tự nhận tư vấn viên vào nhóm của mình");
             }
-            if (user.getManager() != null && !user.getManager().getId().equals(currentUser.id())) {
+            if (user.getManager() != null
+                    && user.getManager().getRole() == RoleEnum.NVKD
+                    && !user.getManager().getId().equals(currentUser.id())) {
                 throw new IllegalArgumentException("Tư vấn viên đang thuộc quản lý của NVKD khác. Chỉ Quản lý khu vực (MANAGER) mới có quyền chuyển nhóm.");
             }
             User manager = userRepository.findById(currentUser.id())
@@ -580,6 +601,7 @@ public class UserService {
     }
 
     private ResUserDTO convertToResUserDTO(User user) {
+        boolean isConsultant = user.getRole() == RoleEnum.CONSULTANT;
         return new ResUserDTO(
             user.getId(),
             user.getUsername(),
@@ -589,8 +611,8 @@ public class UserService {
             user.getRole(),
             user.getRegion() != null ? user.getRegion().getId() : null,
             user.getRegion() != null ? user.getRegion().getName() : null,
-            user.getManager() != null ? user.getManager().getId() : null,
-            user.getManager() != null ? user.getManager().getFullName() : null,
+            isConsultant && user.getManager() != null ? user.getManager().getId() : null,
+            isConsultant && user.getManager() != null ? user.getManager().getFullName() : null,
             user.getCreatedAt(),
             user.getUpdatedAt()
         );

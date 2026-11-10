@@ -1,5 +1,6 @@
 package vn.viettel.khdn.billing_platform.repository;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.domain.Page;
@@ -18,6 +19,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     boolean existsByUsername(String username);
 
+    List<User> findByRoleOrderByIdAsc(RoleEnum role);
+
+    Optional<User> findFirstByRegionIdAndRoleOrderByIdAsc(Long regionId, RoleEnum role);
+
     // SET NULL manager_id cho tất cả CONSULTANT của NVKD bị xóa
     @org.springframework.data.jpa.repository.Modifying
     @Query("UPDATE User u SET u.manager = NULL WHERE u.manager.id = :managerId")
@@ -25,10 +30,13 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @Query(value = """
             SELECT u FROM User u
+            LEFT JOIN u.region reg
+            LEFT JOIN u.manager m
             WHERE (:role IS NULL OR u.role = :role)
-              AND (cast(:regionId as Long) IS NULL OR u.region.id = :regionId)
-              AND (cast(:managerId as Long) IS NULL OR u.manager.id = :managerId)
-              AND (:unassigned = false OR u.manager IS NULL)
+              AND (cast(:regionId as Long) IS NULL OR reg.id = :regionId
+                   OR EXISTS (SELECT 1 FROM CustomerBillingRecord r WHERE r.assignedConsultant = u AND r.region.id = :regionId))
+              AND (cast(:managerId as Long) IS NULL OR m.id = :managerId)
+              AND (:unassigned = false OR m IS NULL OR m.role = 'MANAGER')
               AND (
                 :keyword IS NULL
                 OR LOWER(u.fullName) LIKE LOWER(CONCAT('%', :keyword, '%'))

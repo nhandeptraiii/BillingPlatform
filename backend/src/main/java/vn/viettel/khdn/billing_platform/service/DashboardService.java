@@ -1,6 +1,5 @@
 package vn.viettel.khdn.billing_platform.service;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.khdn.billing_platform.model.dto.dashboard.ResConsultantPerformanceDTO;
@@ -18,7 +17,9 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.io.ByteArrayOutputStream;
 
@@ -32,15 +33,25 @@ import org.apache.poi.ss.usermodel.VerticalAlignment;
 import org.apache.poi.ss.usermodel.Font;
 
 import vn.viettel.khdn.billing_platform.repository.RegionTargetRepository;
+import vn.viettel.khdn.billing_platform.repository.UserRepository;
 import vn.viettel.khdn.billing_platform.model.RegionTarget;
 
 @Service
-@RequiredArgsConstructor
 @Transactional(readOnly = true)
+@SuppressWarnings("null")
 public class DashboardService {
 
     private final CustomerBillingRecordRepository repository;
     private final RegionTargetRepository regionTargetRepository;
+    private final UserRepository userRepository;
+
+    public DashboardService(CustomerBillingRecordRepository repository,
+                            RegionTargetRepository regionTargetRepository,
+                            UserRepository userRepository) {
+        this.repository = repository;
+        this.regionTargetRepository = regionTargetRepository;
+        this.userRepository = userRepository;
+    }
 
     public ResDashboardOverviewDTO getDashboardOverview(Long periodId, User currentUser) {
         List<Object[]> stats;
@@ -172,12 +183,39 @@ public class DashboardService {
 
         List<ResConsultantPerformanceDTO> result = new ArrayList<>();
 
+        Map<Long, User> regionManagers = new HashMap<>();
+        if (currentUser.getRole() == RoleEnum.MANAGER && currentUser.getRegion() != null) {
+            regionManagers.put(currentUser.getRegion().getId(), currentUser);
+        }
+        for (User mgr : userRepository.findByRoleOrderByIdAsc(RoleEnum.MANAGER)) {
+            if (mgr.getRegion() != null && mgr.getRegion().getId() != null) {
+                regionManagers.putIfAbsent(mgr.getRegion().getId(), mgr);
+            }
+        }
+
         for (Object[] row : repository.getConsultantStats(periodId, regionId, managerId)) {
             Long consultantId = ((Number) row[0]).longValue();
             RoleEnum rowRole = (RoleEnum) row[2];
-            // NVKD được giao hồ sơ trực tiếp: tự làm nhóm của chính mình
-            Long mId = rowRole == RoleEnum.NVKD ? consultantId : (row[3] != null ? ((Number) row[3]).longValue() : null);
-            String mName = rowRole == RoleEnum.NVKD ? (String) row[1] : (String) row[4];
+            Long rowRegionId = row.length > 13 && row[13] != null ? ((Number) row[13]).longValue() : regionId;
+
+            Long mId;
+            String mName;
+            if (rowRole == RoleEnum.NVKD || rowRole == RoleEnum.MANAGER) {
+                // NVKD hoặc MANAGER được giao hồ sơ trực tiếp: tự làm nhóm của chính mình
+                mId = consultantId;
+                mName = (String) row[1];
+            } else if (row[3] != null) {
+                mId = ((Number) row[3]).longValue();
+                mName = (String) row[4];
+            } else {
+                // Tư vấn viên không có người quản lý -> gán thẳng vào Giám đốc của khu vực đó
+                User regionMgr = rowRegionId != null ? regionManagers.get(rowRegionId) : null;
+                if (regionMgr == null && currentUser.getRole() == RoleEnum.MANAGER) {
+                    regionMgr = currentUser;
+                }
+                mId = regionMgr != null ? regionMgr.getId() : null;
+                mName = regionMgr != null ? regionMgr.getFullName() : null;
+            }
 
             result.add(buildPerformance(consultantId, (String) row[1], mId, mName,
                     toLong(row[5]), toBigDecimal(row[6]), toLong(row[7]), toBigDecimal(row[8]),

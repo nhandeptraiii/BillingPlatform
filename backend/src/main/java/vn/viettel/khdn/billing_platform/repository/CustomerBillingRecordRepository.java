@@ -359,7 +359,8 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
      * Thống kê theo từng tư vấn viên (LEFT JOIN từ User nên tư vấn viên chưa có hồ sơ vẫn hiện).
      * Cột: [0] id, [1] họ tên, [2] role, [3] managerId, [4] managerName,
      *      [5] tổng hồ sơ, [6] tổng phải thu, [7] hồ sơ đã gạch nợ, [8] tiền đã gạch nợ,
-     *      [9] FTTH N1 tổng hồ sơ, [10] FTTH N1 phải thu, [11] FTTH N1 đã gạch nợ, [12] FTTH N1 tiền đã gạch nợ
+     *      [9] FTTH N1 tổng hồ sơ, [10] FTTH N1 phải thu, [11] FTTH N1 đã gạch nợ, [12] FTTH N1 tiền đã gạch nợ,
+     *      [13] regionId
      * regionId != null: lọc theo khu vực (MANAGER); managerId != null: chỉ nhóm của NVKD đó.
      */
     @Query("""
@@ -375,15 +376,17 @@ public interface CustomerBillingRecordRepository extends JpaRepository<CustomerB
                    COALESCE(SUM(CASE WHEN r.ftthN1 = true AND r.debtStatus = 'DA_GACH_NO' THEN (
                         CASE WHEN r.collectedAmount IS NULL OR r.collectedAmount <= 0 THEN COALESCE(r.amountDue, 0)
                              WHEN r.collectedAmount > COALESCE(r.amountDue, 0) THEN COALESCE(r.amountDue, 0)
-                             ELSE r.collectedAmount END) ELSE 0 END), 0)
+                             ELSE r.collectedAmount END) ELSE 0 END), 0),
+                   reg.id
             FROM User c
             LEFT JOIN c.manager m
+            LEFT JOIN c.region reg
             LEFT JOIN CustomerBillingRecord r ON r.assignedConsultant.id = c.id AND r.billingPeriod.id = :periodId
-            WHERE (c.role = 'CONSULTANT' OR (c.role = 'NVKD' AND r.id IS NOT NULL))
+            WHERE (c.role = 'CONSULTANT' OR (c.role IN ('NVKD', 'MANAGER') AND r.id IS NOT NULL))
               AND (c.status = 'ACTIVE' OR r.id IS NOT NULL)
-              AND (cast(:regionId as Long) IS NULL OR c.region.id = :regionId)
+              AND (cast(:regionId as Long) IS NULL OR reg.id = :regionId OR r.region.id = :regionId)
               AND (cast(:managerId as Long) IS NULL OR m.id = :managerId OR c.id = :managerId)
-            GROUP BY c.id, c.fullName, c.role, m.id, m.fullName
+            GROUP BY c.id, c.fullName, c.role, m.id, m.fullName, reg.id
             """)
     List<Object[]> getConsultantStats(@Param("periodId") Long periodId,
             @Param("regionId") Long regionId, @Param("managerId") Long managerId);
