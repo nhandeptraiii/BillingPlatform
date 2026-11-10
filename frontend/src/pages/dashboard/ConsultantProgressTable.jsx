@@ -1,4 +1,6 @@
 import { toast } from "react-toastify";
+import { useSelector } from "react-redux";
+import { getRole } from "../../utils/role";
 import dashboardService from "../../services/dashboardService";
 import styles from "./ConsultantProgressTable.module.scss";
 
@@ -6,6 +8,8 @@ const number = (value) => Number(value || 0).toLocaleString("vi-VN");
 const percent = (part, total) => total > 0 ? (part / total * 100).toFixed(1) : "0.0";
 
 export default function ConsultantProgressTable({ consultants = [], overview = {}, month, year }) {
+  const user = useSelector(state => state.auth.user);
+  const showGroup = getRole(user) !== "NVKD";
   const exportExcel = async () => {
     try {
       const response = await dashboardService.exportConsultants(month, year);
@@ -48,7 +52,7 @@ export default function ConsultantProgressTable({ consultants = [], overview = {
     <section className={styles.section}>
       <div className={styles.header}>
         <div>
-          <h2>Kết quả thu cước theo nhân viên &amp; nhóm NVKD</h2>
+          <h2>Kết quả thu cước theo Tư vấn viên{showGroup ? " & nhóm NVKDĐB" : ""}</h2>
           <p>{subtitle}</p>
         </div>
         <button onClick={exportExcel}>Xuất Excel</button>
@@ -59,7 +63,7 @@ export default function ConsultantProgressTable({ consultants = [], overview = {
           <thead>
             <tr>
               <th rowSpan="2">STT</th>
-              <th rowSpan="2">Nhóm NVKD</th>
+              {showGroup && <th rowSpan="2">Nhóm NVKDĐB</th>}
               <th rowSpan="2">Tư vấn viên</th>
               <th colSpan="2">Đầu kỳ</th>
               <th colSpan="4">Đã thu (đã gạch nợ)</th>
@@ -79,7 +83,7 @@ export default function ConsultantProgressTable({ consultants = [], overview = {
           <tbody>
             {!consultants.length ? (
               <tr>
-                <td colSpan="11">Không có dữ liệu</td>
+                <td colSpan={showGroup ? 11 : 10}>Không có dữ liệu</td>
               </tr>
             ) : (
               consultants.map((item, index) => {
@@ -91,7 +95,7 @@ export default function ConsultantProgressTable({ consultants = [], overview = {
                 return (
                   <tr key={item.consultantId || `unassigned-${index}`}>
                     <td>{index + 1}</td>
-                    <td className={styles.name}>{item.managerName || (item.consultantId ? "Trực thuộc GĐKV" : "-")}</td>
+                    {showGroup && <td className={styles.name}>{item.managerName || (item.consultantId ? "Trực thuộc Giám đốc khu vực" : "-")}</td>}
                     <td className={styles.name}>{item.consultantName}</td>
                     <td>{number(records)}</td>
                     <td>{number(amount)}</td>
@@ -113,7 +117,7 @@ export default function ConsultantProgressTable({ consultants = [], overview = {
           {!!consultants.length && (
             <tfoot>
               <tr>
-                <th colSpan="3">TỔNG</th>
+                <th colSpan={showGroup ? 3 : 2}>TỔNG</th>
                 <th>{number(totals.records)}</th>
                 <th>{number(totals.amounts)}</th>
                 <th>{number(totals.collectedRecords)}</th>

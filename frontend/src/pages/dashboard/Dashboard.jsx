@@ -13,7 +13,6 @@ import ConsultantProgressTable from "./ConsultantProgressTable";
 
 import DailyStatsTable from "./DailyStatsTable";
 
-import WarningTable from "./WarningTable";
 
 import styles from "./Dashboard.module.scss";
 import ConsultantRanking from "./ConsultantRanking";
@@ -28,7 +27,6 @@ const Dashboard = () => {
     overview,
     consultants,
     dailyStats,
-    warnings,
   } = useSelector(
     (state) => state.dashboard
   );
@@ -140,9 +138,6 @@ const Dashboard = () => {
         />
       </div>
 
-      <WarningTable
-        warnings={warnings}
-      />
     </div>
   );
 };

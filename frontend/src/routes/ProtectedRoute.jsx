@@ -30,7 +30,7 @@ const getNormalizedRole = (user) => {
   return "";
 };
 
-const ProtectedRoute = ({ children }) => {
+const ProtectedRoute = ({ children, allowedRoles }) => {
 
   const token =
     localStorage.getItem("token");
@@ -66,19 +66,23 @@ try {
   localStorage.removeItem("user");
 
   toast.warning(
-    "Tài khoản CONSULTANT chỉ được phép sử dụng trên Mobile App."
+    "Tài khoản Tư vấn viên chỉ được phép sử dụng trên Mobile App."
   );
 
   return <Navigate to="/login" replace />;
 }
 
   if (role !== "ADMIN" &&
-  role !== "MANAGER") {
+  role !== "MANAGER" && role !== "NVKD") {
 
     localStorage.removeItem("token");
     localStorage.removeItem("user");
 
     return <Navigate to="/login" replace />;
+  }
+
+  if (allowedRoles && !allowedRoles.includes(role)) {
+    return <Navigate to="/" replace />;
   }
 
   return children;

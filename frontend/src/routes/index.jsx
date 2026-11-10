@@ -78,7 +78,7 @@ function AppRoutes() {
           <Route
             path="/importInitialDebt"
             element={
-              <ImportInitialDebt />
+              <ProtectedRoute allowedRoles={["ADMIN", "MANAGER"]}><ImportInitialDebt /></ProtectedRoute>
             }
           />
            <Route
@@ -106,10 +106,10 @@ function AppRoutes() {
           <Route
           path="store-config"
           element={
-            <StoreConfig />
+            <ProtectedRoute allowedRoles={["ADMIN", "MANAGER"]}><StoreConfig /></ProtectedRoute>
           }
           />
-          <Route path="/region-targets" element={<RegionTargets />} />
+          <Route path="/region-targets" element={<ProtectedRoute allowedRoles={["ADMIN", "MANAGER"]}><RegionTargets /></ProtectedRoute>} />
         </Route>
 
 

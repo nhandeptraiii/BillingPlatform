@@ -35,7 +35,7 @@ export default function ConsultantModal({ open, onClose, consultant, onSuccess }
 
   if (!open) return null;
   const set = (field, value) => setForm(previous => ({ ...previous, [field]: value }));
-  const canChooseRole = currentRole === "ADMIN" || (currentRole === "MANAGER" && !consultant);
+  const canChooseRole = currentRole === "ADMIN" || (currentRole === "MANAGER" && (!consultant || ["NVKD", "CONSULTANT"].includes(consultant.role)));
   // ADMIN và MANAGER đều có quyền phân công/chuyển nhóm tư vấn viên
   const canAssignConsultant = ["ADMIN", "MANAGER"].includes(currentRole) && form.role === "CONSULTANT";
 
@@ -73,10 +73,10 @@ export default function ConsultantModal({ open, onClose, consultant, onSuccess }
     <input placeholder="Họ tên" value={form.fullName} onChange={e => set("fullName", e.target.value)} />
     <input placeholder="Số điện thoại" value={form.phone} onChange={e => set("phone", e.target.value)} />
     {canChooseRole && <div className={styles.formGroup}><label>Vai trò</label><select value={form.role} onChange={e => setForm(previous => ({ ...previous, role: e.target.value, managerId: e.target.value === "CONSULTANT" ? previous.managerId : "" }))}>
-      {currentRole === "ADMIN" && <option value="MANAGER">Quản lý khu vực</option>}<option value="NVKD">Nhân viên kinh doanh địa bàn</option><option value="CONSULTANT">Tư vấn viên</option>
+      {currentRole === "ADMIN" && <option value="MANAGER">Giám đốc khu vực</option>}<option value="NVKD">Nhân viên kinh doanh địa bàn</option><option value="CONSULTANT">Tư vấn viên</option>
     </select></div>}
     {currentRole === "ADMIN" && <div className={styles.formGroup}><label>Khu vực</label><select value={form.regionId} onChange={e => set("regionId", e.target.value)}><option value="">Chọn khu vực</option>{regions.map(region => <option key={region.id} value={region.id}>{region.name}</option>)}</select></div>}
-    {canAssignConsultant && <div className={styles.formGroup}><label>Phân công cho NVKD (tùy chọn)</label><select value={form.managerId} onChange={e => set("managerId", e.target.value)}><option value="">Trực thuộc quản lý khu vực</option>{managers.filter(manager => currentRole === "MANAGER" || !form.regionId || String(manager.regionId) === String(form.regionId)).map(manager => <option key={manager.id} value={manager.id}>{manager.fullName}</option>)}</select></div>}
+    {canAssignConsultant && <div className={styles.formGroup}><label>Phân công cho Nhân viên kinh doanh địa bàn (tùy chọn)</label><select value={form.managerId} onChange={e => set("managerId", e.target.value)}><option value="">Trực thuộc Giám đốc khu vực</option>{managers.filter(manager => currentRole === "MANAGER" || !form.regionId || String(manager.regionId) === String(form.regionId)).map(manager => <option key={manager.id} value={manager.id}>{manager.fullName}</option>)}</select></div>}
     <div className={styles.actions}><button onClick={onClose}>Hủy</button><button className={styles.saveBtn} onClick={submit}>Lưu</button></div>
   </div></div>;
 }

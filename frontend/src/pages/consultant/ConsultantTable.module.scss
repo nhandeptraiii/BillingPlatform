@@ -2,22 +2,49 @@
   background: white;
   border-radius: 12px;
   overflow: hidden;
+  max-width: 100%;
 }
 
-table {
+.tableScroll {
+  overflow-x: auto;
+}
+
+.tableWrapper table {
   width: 100%;
+  min-width: 760px;
+  table-layout: fixed;
   border-collapse: collapse;
+  text-align: left;
 }
 
-th {
+.tableWrapper th {
   background: #c30000;
   color: white;
-  padding: 14px;
+  padding: 10px 8px;
 }
 
-td {
-  padding: 14px;
+.tableWrapper td {
+  padding: 10px 8px;
   border-bottom: 1px solid #eee;
+}
+
+.tableWrapper th,
+.tableWrapper td {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  font-size: 14px;
+  vertical-align: middle;
+}
+
+.tableWrapper th:first-child { width: 5%; }
+.tableWrapper th:last-child { width: 24%; }
+
+.tableWrapper td:last-child button {
+  min-width: 0;
+  width: auto;
+  height: auto;
+  padding: 7px 9px;
+  margin: 3px;
 }
 
 .active {
@@ -38,6 +65,7 @@ td {
 }
 .pagination {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
   align-items: center;
 

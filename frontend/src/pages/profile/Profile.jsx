@@ -1,6 +1,7 @@
 import { useSelector } from "react-redux";
 import { useState } from "react";
 import "./Profile.scss";
+import { getRole, roleLabels } from "../../utils/role";
 
 import ProfileModal from "./ProfileModal";
 import ChangePasswordModal from "./ChangePasswordModal";
@@ -45,7 +46,7 @@ function Profile() {
 
                     <div>
                         <h2>{user?.fullName}</h2>
-                        <span className="role">{user?.role}</span>
+                        <span className="role">{roleLabels[getRole(user)] || getRole(user)}</span>
                     </div>
                 </div>
 

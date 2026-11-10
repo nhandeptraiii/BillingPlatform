@@ -88,7 +88,7 @@ export default function RegionTargets() {
     <section className={styles.preview}><h2>Quy đổi chỉ tiêu từ dữ liệu đầu kỳ</h2>
       <div className={styles.previewGrid}>
         <div><h3>Toàn bộ kỳ cước</h3><p>Khách hàng mục tiêu: <strong>{value(calculate(overview.totalRecordsImported, form.targetCustomerPercent))}</strong> / {value(overview.totalRecordsImported)}</p><p>Doanh thu mục tiêu: <strong>{value(calculateMoney(overview.totalExpectedAmount, form.targetRevenuePercent))} đ</strong> / {value(overview.totalExpectedAmount)} đ</p></div>
-        <div><h3>FTTH N1</h3><p>Khách hàng mục tiêu: <strong>{value(calculate(overview.ftthN1TotalRecords, form.targetFtthN1Percent))}</strong> / {value(overview.ftthN1TotalRecords)}</p><p>Doanh thu mục tiêu: <strong>{value(calculateMoney(overview.ftthN1ExpectedAmount, form.targetFtthN1Percent))} đ</strong> / {value(overview.ftthN1ExpectedAmount)} đ</p></div>
+        <div><h3>FTTH N1</h3><p>Thuê bao mục tiêu: <strong>{value(calculate(overview.ftthN1TotalRecords, form.targetFtthN1Percent))}</strong> / {value(overview.ftthN1TotalRecords)}</p></div>
       </div>
     </section>
   </div>;

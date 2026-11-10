@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import styles from "./ImportInitialDebt.module.scss";
 import UploadBox from "./UploadBox";
 import importInitialDebtService from "../../services/importInitialDebtService";
@@ -8,22 +8,45 @@ import { toast } from "react-toastify";
 const ImportInitialDebt = () => {
   const [periods, setPeriods] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [busyId, setBusyId] = useState(null);
 
-  const fetchPeriods = async () => {
+  const fetchPeriods = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await billingPeriodService.getBillingPeriods({ page: 0, size: 20 });
-      setPeriods(res.data?.content || res.data || []);
-    } catch {
-      setPeriods([]);
+      const res = await billingPeriodService.getBillingPeriods({ page, size: 20 });
+      const data = res.data.data || res.data;
+      if (page > 0 && page >= data.totalPages) {
+        setPage(Math.max(0, data.totalPages - 1));
+        return;
+      }
+      setPeriods(data.content || []);
+      setTotalPages(data.totalPages || 0);
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Không thể tải danh sách kỳ cước");
     } finally {
       setLoading(false);
     }
-  };
+  }, [page]);
 
   useEffect(() => {
     fetchPeriods();
-  }, []);
+  }, [fetchPeriods]);
+
+  const handleClosePeriod = async (p) => {
+    if (!window.confirm(`Đóng kỳ ${p.name}? Kỳ này dùng chung cho các khu vực. Sau khi đóng sẽ không thể xóa kỳ.`)) return;
+    setBusyId(p.id);
+    try {
+      await billingPeriodService.closeBillingPeriod(p.id);
+      toast.success(`Đã đóng kỳ ${p.name}`);
+      await fetchPeriods();
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Không thể đóng kỳ cước");
+    } finally {
+      setBusyId(null);
+    }
+  };
 
   const handleDownloadTemplate = async () => {
     try {
@@ -51,12 +74,15 @@ const ImportInitialDebt = () => {
     ) {
       return;
     }
+    setBusyId(p.id);
     try {
       const res = await billingPeriodService.deleteBillingPeriod(p.id);
-      toast.success(res.data?.message || `Đã xóa dữ liệu kỳ ${p.name}`);
-      fetchPeriods();
+      toast.success((res.data.data || res.data)?.message || `Đã xóa dữ liệu kỳ ${p.name}`);
+      await fetchPeriods();
     } catch (error) {
       toast.error(error.response?.data?.message || "Không thể xóa kỳ cước");
+    } finally {
+      setBusyId(null);
     }
   };
 
@@ -64,8 +90,8 @@ const ImportInitialDebt = () => {
     <div className={styles.container}>
       <div className={styles.pageHeader}>
         <div>
-          <h1>Import dữ liệu thu cước đầu kỳ</h1>
-          <p>Quản lý import và xóa kỳ cước để import lại</p>
+          <h1>Quản lý kỳ cước</h1>
+          <p>Import dữ liệu đầu kỳ, xem danh sách, đóng và xóa kỳ cước</p>
         </div>
 
         <button className={styles.downloadBtn} onClick={handleDownloadTemplate}>
@@ -73,15 +99,17 @@ const ImportInitialDebt = () => {
         </button>
       </div>
 
-      <UploadBox onUploadSuccess={fetchPeriods} />
+      <UploadBox onUploadSuccess={() => page === 0 ? fetchPeriods() : setPage(0)} />
 
       <div style={{ marginTop: 32, background: "white", padding: 24, borderRadius: 16, boxShadow: "0 2px 10px rgba(0,0,0,0.05)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
           <h2 style={{ fontSize: 20, color: "#d70018", margin: 0 }}>Danh sách kỳ cước đã tạo</h2>
           <button
             onClick={fetchPeriods}
+            disabled={loading || busyId !== null}
             style={{
               background: "none",
+              color: "#374151",
               border: "1px solid #ddd",
               padding: "6px 12px",
               borderRadius: 8,
@@ -129,7 +157,14 @@ const ImportInitialDebt = () => {
                     </td>
                     <td style={{ padding: "12px", textAlign: "center" }}>
                       {p.status !== "CLOSED" && (
+                        <>
                         <button
+                          disabled={busyId !== null}
+                          onClick={() => handleClosePeriod(p)}
+                          style={{ background: "#eef2ff", color: "#3730a3", border: "1px solid #a5b4fc", padding: "6px 12px", borderRadius: 6, marginRight: 8, cursor: "pointer", fontWeight: 600 }}
+                        >Đóng kỳ cước</button>
+                        <button
+                          disabled={busyId !== null}
                           onClick={() => handleDeletePeriod(p)}
                           style={{
                             background: "#fff1f0",
@@ -143,6 +178,7 @@ const ImportInitialDebt = () => {
                         >
                           Xóa kỳ này
                         </button>
+                        </>
                       )}
                     </td>
                   </tr>
@@ -152,6 +188,11 @@ const ImportInitialDebt = () => {
           </div>
         )}
       </div>
+      {totalPages > 1 && <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16, marginTop: 16 }}>
+        <button className={styles.downloadBtn} disabled={page === 0 || loading || busyId !== null} onClick={() => setPage(page - 1)}>Trang trước</button>
+        <span>Trang {page + 1}/{totalPages}</span>
+        <button className={styles.downloadBtn} disabled={page >= totalPages - 1 || loading || busyId !== null} onClick={() => setPage(page + 1)}>Trang sau</button>
+      </div>}
     </div>
   );
 };
