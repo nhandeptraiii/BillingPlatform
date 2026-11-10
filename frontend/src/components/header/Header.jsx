@@ -6,6 +6,7 @@ import Logout from "@mui/icons-material/Logout";
 import { logout } from "../../redux/slices/authSlice";
 import { logoutApi } from "../../services/authService";
 
+import { getRole, roleLabels } from "../../utils/role";
 import styles from "./Header.module.scss";
 
 function Header({ onToggleSidebar }) {
@@ -16,7 +17,7 @@ function Header({ onToggleSidebar }) {
   const [open, setOpen] = useState(false);
   const menuRef = useRef();
 
-  const role = user?.roles?.[0]?.name;
+  const role = roleLabels[getRole(user)] || getRole(user);
 
   const toggleMenu = () => {
     setOpen(!open);

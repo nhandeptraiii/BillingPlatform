@@ -15,11 +15,11 @@ function Sidebar({ isOpen, isMobile, onClose }) {
       <nav className={styles.menu}>
         <MenuLink to="/" onClose={onClose}>Dashboard</MenuLink>
         {canManageUsers(user) && <MenuLink to="/consultants" onClose={onClose}>Quản lý người dùng</MenuLink>}
-        {canImportEmployees(user) && <MenuLink to="/importInitialDebt" onClose={onClose}>Import danh sách đầu kỳ</MenuLink>}
+        {canImportEmployees(user) && <MenuLink to="/importInitialDebt" onClose={onClose}>Quản lý kỳ cước</MenuLink>}
         {canManageTargets(user) && <MenuLink to="/region-targets" onClose={onClose}>Giao chỉ tiêu</MenuLink>}
         <MenuLink to="/paid-customer-import" onClose={onClose}>Cập nhật KH đã thanh toán</MenuLink>
         <MenuLink to="/collectionProgress" onClose={onClose}>Danh sách tiến độ thu cước</MenuLink>
-        <MenuLink to="/store-config" onClose={onClose}>Cài đặt tên shop</MenuLink>
+        {canManageTargets(user) && <MenuLink to="/store-config" onClose={onClose}>Cài đặt tên shop</MenuLink>}
       </nav>
     </div>
   </>;

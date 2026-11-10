@@ -4,19 +4,17 @@ import dashboardService from "../../services/dashboardService";
 export const fetchDashboard = createAsyncThunk(
   "dashboard/fetchDashboard",
   async ({ month, year, date }) => {
-    const [overview, consultants, dailyStats, warnings] =
+    const [overview, consultants, dailyStats] =
       await Promise.all([
         dashboardService.getOverview(month, year),
         dashboardService.getConsultants(month, year),
         dashboardService.getDailyStats(date),
-        dashboardService.getWarnings(month, year),
       ]);
 
     return {
       overview: overview.data.data || overview.data,
       consultants: consultants.data.data || consultants.data,
       dailyStats: dailyStats.data.data || dailyStats.data,
-      warnings: warnings.data.data || warnings.data,
     };
   }
 );
@@ -33,9 +31,6 @@ const dashboardSlice = createSlice({
 
     dailyStats: [],
 
-    warnings: {
-      content: [],
-    },
   },
 
   reducers: {},
@@ -55,7 +50,6 @@ const dashboardSlice = createSlice({
 
         state.dailyStats = action.payload.dailyStats;
 
-        state.warnings = action.payload.warnings;
       })
 
       .addCase(fetchDashboard.rejected, (state) => {

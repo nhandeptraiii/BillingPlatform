@@ -220,7 +220,7 @@ const handleReset = () => {
           </option>
 
           <option value="NVKD">
-            Nhân viên kinh doanh
+            Nhân viên kinh doanh địa bàn
           </option>
         </select>
 
